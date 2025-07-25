@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4f8cff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00ffe7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Main circle background -->
+  <circle cx="50" cy="50" r="45" fill="url(#grad)" stroke="#ffffff" stroke-width="2"/>
+  
+  <!-- Chat bubble shape -->
+  <path d="M30 35 Q50 20 70 35 Q70 50 50 65 Q30 50 30 35 Z" fill="#ffffff" opacity="0.9"/>
+  
+  <!-- Security dots -->
+  <circle cx="40" cy="40" r="3" fill="#4f8cff"/>
+  <circle cx="60" cy="40" r="3" fill="#4f8cff"/>
+  
+  <!-- Smile/security indicator -->
+  <path d="M35 55 Q50 45 65 55" stroke="#4f8cff" stroke-width="2" fill="none"/>
+  
+  <!-- Lock symbol overlay -->
+  <rect x="45" y="48" width="10" height="8" rx="1" fill="#4f8cff" opacity="0.7"/>
+  <path d="M47 48 V45 Q50 42 53 45 V48" stroke="#4f8cff" stroke-width="1.5" fill="none" opacity="0.7"/>
+</svg>

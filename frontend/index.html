@@ -1,0 +1,4206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+    <title>WhisperSphere - Secure P2P Chat</title>
+
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="apple-touch-icon" href="/static/favicon.svg">
+    <link rel="manifest" href="/static/manifest.json">
+
+    <!-- Meta tags for better SEO and social sharing -->
+    <meta name="description" content="WhisperSphere - Secure peer-to-peer encrypted chat application. Connect with multiple users using a secret code for private group conversations.">
+    <meta name="keywords" content="secure chat, encrypted messaging, P2P chat, private messaging, group chat">
+    <meta name="author" content="WhisperSphere">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="">
+    <meta property="og:title" content="WhisperSphere - Secure P2P Chat">
+    <meta property="og:description" content="Secure peer-to-peer encrypted chat application for private group conversations.">
+    <meta property="og:image" content="">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="">
+    <meta property="twitter:title" content="WhisperSphere - Secure P2P Chat">
+    <meta property="twitter:description" content="Secure peer-to-peer encrypted chat application for private group conversations.">
+    <meta property="twitter:image" content="">
+
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f8cff;
+            --accent: #00ffe7;
+            --bg: #181c24;
+            --panel: #23283a;
+            --bubble: #23283a;
+            --bubble-me: #4f8cff33;
+            --glow: 0 0 8px var(--accent), 0 0 16px var(--primary);
+            --text: #fff;
+            --system: var(--accent);
+
+            /* Telegram-style variables */
+            --tg-bg: #181c24;
+            --tg-sidebar: #23283a;
+            --tg-header: #23283a;
+            --tg-chat-bg: #181c24;
+            --tg-input-bg: #2a2f3a;
+            --tg-text: #fff;
+            --tg-text-secondary: #8b949e;
+            --tg-accent: #4f8cff;
+            --tg-border: #30363d;
+            --tg-hover: rgba(79, 140, 255, 0.1);
+            --tg-bubble-out: #4f8cff;
+            --tg-bubble-in: #2a2f3a;
+        }
+        .light-theme {
+            --primary: #4f8cff;
+            --accent: #0077ff;
+            --bg: #f6faff;
+            --panel: #eaf1fb;
+            --bubble: #eaf1fb;
+            --bubble-me: #cce6ff;
+            --glow: 0 0 8px #b3e0ff, 0 0 16px #4f8cff;
+            --text: #23283a;
+            --system: #0077ff;
+
+            /* Telegram-style variables for light theme */
+            --tg-bg: #f6faff;
+            --tg-sidebar: #eaf1fb;
+            --tg-header: #eaf1fb;
+            --tg-chat-bg: #ffffff;
+            --tg-input-bg: #ffffff;
+            --tg-text: #23283a;
+            --tg-text-secondary: #6e7781;
+            --tg-accent: #0077ff;
+            --tg-border: #d0d7de;
+            --tg-hover: rgba(0, 119, 255, 0.1);
+            --tg-bubble-out: #0077ff;
+            --tg-bubble-in: #f6f8fa;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--tg-bg);
+            color: var(--tg-text);
+            overflow: hidden;
+            transition: all 0.2s ease;
+            /* Mobile-specific improvements */
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        /* Telegram-style layout */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            background: var(--tg-bg);
+            /* Desktop: Centered with max-width */
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            /* Smooth transitions for responsive changes */
+            transition: all 0.3s ease;
+        }
+
+        /* Desktop styling */
+        @media (min-width: 769px) {
+            body {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* Beautiful gradient background */
+                padding: 20px 0;
+                min-height: 100vh;
+            }
+
+            .light-theme body {
+                background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); /* Light theme gradient */
+            }
+
+            .app-container {
+                height: calc(100vh - 40px);
+                border-radius: 12px;
+                box-shadow:
+                    0 4px 20px rgba(0, 0, 0, 0.15),
+                    0 0 0 1px rgba(255, 255, 255, 0.1),
+                    0 0 40px rgba(79, 140, 255, 0.1);
+                overflow: hidden;
+                border: 1px solid var(--tg-border);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+
+            .loading-screen {
+                border-radius: 12px;
+                max-width: 1200px;
+                margin: 20px auto;
+                height: calc(100vh - 40px);
+            }
+
+            /* Desktop sidebar enhancements */
+            .sidebar {
+                border-right: 1px solid var(--tg-border);
+                background: var(--tg-sidebar);
+            }
+
+            /* Desktop chat container enhancements */
+            .chat-container {
+                background: var(--tg-chat-bg);
+            }
+
+            /* Desktop header styling */
+            .sidebar-header, .chat-header {
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+        }
+
+        /* Large desktop screens (1400px+) */
+        @media (min-width: 1400px) {
+            .app-container {
+                max-width: 1400px;
+            }
+
+            .loading-screen {
+                max-width: 1400px;
+            }
+        }
+
+        /* Ultra-wide screens (1600px+) */
+        @media (min-width: 1600px) {
+            body {
+                padding: 40px 0;
+            }
+
+            .app-container {
+                height: calc(100vh - 80px);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            }
+
+            .loading-screen {
+                margin: 40px auto;
+                height: calc(100vh - 80px);
+            }
+        }
+
+        .sidebar {
+            width: 320px;
+            background: var(--tg-sidebar);
+            border-right: 1px solid var(--tg-border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--tg-border);
+            background: linear-gradient(135deg, var(--tg-sidebar), rgba(79, 140, 255, 0.05));
+            position: relative;
+        }
+
+        .sidebar-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--tg-accent), transparent);
+        }
+
+        .sidebar-title {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--tg-text);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .app-logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--tg-accent), #00ffe7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 2px 8px rgba(79, 140, 255, 0.3);
+            animation: logoGlow 3s ease-in-out infinite alternate;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .app-logo:hover {
+            transform: scale(1.1);
+        }
+
+        .app-logo::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent);
+            transform: rotate(45deg);
+            animation: logoShimmer 4s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+            from {
+                box-shadow: 0 2px 8px rgba(79, 140, 255, 0.3);
+            }
+            to {
+                box-shadow: 0 4px 16px rgba(79, 140, 255, 0.6);
+            }
+        }
+
+        @keyframes logoShimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+            100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        }
+
+        .app-name {
+            font-family: 'Orbitron', monospace;
+            font-weight: 500;
+            background: linear-gradient(135deg, var(--tg-accent), #00ffe7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .connection-form {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-footer {
+            margin-top: auto;
+            padding: 16px 0 0 0;
+            border-top: 1px solid var(--tg-border);
+            opacity: 0.8;
+        }
+
+        .footer-content {
+            text-align: center;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .footer-text {
+            font-size: 12px;
+            color: var(--tg-text-secondary);
+            line-height: 1.4;
+        }
+
+        .footer-text p {
+            margin: 4px 0;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            color: var(--tg-text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--tg-border);
+            border-radius: 8px;
+            background: var(--tg-input-bg);
+            color: var(--tg-text);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .form-input:focus {
+            border-color: var(--tg-accent);
+        }
+
+        .form-button {
+            width: 100%;
+            padding: 12px;
+            background: var(--tg-accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .form-button:hover {
+            background: #5a9bd4;
+        }
+
+        .form-button:disabled {
+            background: var(--tg-text-secondary);
+            cursor: not-allowed;
+        }
+        /* Chat area */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--tg-chat-bg);
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            background: var(--tg-header);
+            border-bottom: 1px solid var(--tg-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--tg-accent), #00ffe7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 500;
+            margin-right: 12px;
+            box-shadow: 0 2px 8px rgba(79, 140, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chat-avatar::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+            100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        }
+
+        .chat-details h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--tg-text);
+        }
+
+        .chat-status, .chat-users {
+            margin: 0;
+            font-size: 13px;
+            color: var(--tg-text-secondary);
+        }
+
+        .chat-users {
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .theme-toggle, .reconnect-button, .clear-chat-button {
+            background: none;
+            border: none;
+            padding: 8px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: var(--tg-text-secondary);
+            transition: background 0.2s;
+        }
+
+        .theme-toggle:hover, .reconnect-button:hover, .clear-chat-button:hover {
+            background: var(--tg-hover);
+        }
+
+        .reconnect-button {
+            color: var(--tg-accent);
+        }
+
+        .reconnect-button:hover {
+            background: rgba(79, 140, 255, 0.1);
+        }
+
+        .reconnect-button.connecting {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .theme-toggle svg, .reconnect-button svg, .clear-chat-button svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Clear chat button specific styling */
+        .clear-chat-button {
+            color: #ff6b6b; /* Red color for delete action */
+        }
+
+        .clear-chat-button:hover {
+            background: rgba(255, 107, 107, 0.1);
+            color: #ff5252;
+        }
+        /* Messages area */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 8px;
+        }
+
+        .message.outgoing {
+            justify-content: flex-end;
+        }
+
+        .message.incoming {
+            justify-content: flex-start;
+        }
+
+        .message.system {
+            justify-content: center;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 8px 12px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+            position: relative;
+            animation: messageSlideIn 0.3s ease-out;
+        }
+
+        .message.outgoing .message-bubble {
+            background: var(--tg-bubble-out);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.incoming .message-bubble {
+            background: var(--tg-bubble-in);
+            color: var(--tg-text);
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--tg-border);
+        }
+
+        .message.system .message-bubble {
+            background: transparent;
+            color: var(--tg-text-secondary);
+            font-size: 13px;
+            font-style: italic;
+            text-align: center;
+            border: none;
+            padding: 4px 8px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 2px;
+            text-align: right;
+        }
+
+        .message.incoming .message-time {
+            color: var(--tg-text-secondary);
+        }
+
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hidden { display: none; }
+        /* Input area */
+        .input-container {
+            padding: 16px 20px;
+            background: var(--tg-header);
+            border-top: 1px solid var(--tg-border);
+            /* Mobile keyboard handling */
+            position: relative;
+            z-index: 10;
+            /* Ensure input stays above virtual keyboard */
+            padding-bottom: env(safe-area-inset-bottom, 16px);
+        }
+
+        .input-area {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            background: var(--tg-input-bg);
+            border: 1px solid var(--tg-border);
+            border-radius: 20px;
+            padding: 8px 16px;
+            transition: border-color 0.2s;
+        }
+
+        .input-area:focus-within {
+            border-color: var(--tg-accent);
+        }
+
+        .message-input {
+            flex: 1;
+            border: none;
+            background: none;
+            color: var(--tg-text);
+            font-size: 16px; /* Prevent zoom on iOS */
+            line-height: 1.4;
+            padding: 8px 0;
+            outline: none;
+            resize: none;
+            max-height: 120px;
+            min-height: 20px;
+            /* Mobile optimizations */
+            -webkit-appearance: none;
+            -webkit-border-radius: 0;
+            border-radius: 0;
+            /* Prevent autocomplete/autocorrect issues */
+            autocomplete: off;
+            autocorrect: off;
+            autocapitalize: sentences;
+            spellcheck: true;
+            /* Improve touch interaction */
+            touch-action: manipulation;
+        }
+
+        .message-input::placeholder {
+            color: var(--tg-text-secondary);
+        }
+
+        .send-button {
+            background: var(--tg-accent);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: white;
+        }
+
+        .send-button:hover {
+            background: #5a9bd4;
+        }
+
+        .send-button:disabled {
+            background: var(--tg-text-secondary);
+            cursor: not-allowed;
+        }
+
+        .send-button svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        /* Voice call button styles */
+        .call-button {
+            background: #28a745;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: white;
+            margin-right: 8px;
+        }
+
+        .call-button:hover {
+            background: #218838;
+        }
+
+        .call-button:disabled {
+            background: var(--tg-text-secondary);
+            cursor: not-allowed;
+        }
+
+        .call-button.calling {
+            background: #dc3545;
+            animation: pulse 1s infinite;
+        }
+
+        .call-button.in-call {
+            background: #dc3545;
+        }
+
+        .call-button svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Call Modal Styles */
+        .call-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .call-modal-content {
+            background: var(--tg-bg);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            max-width: 300px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .call-avatar {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .caller-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--tg-text);
+            margin-bottom: 5px;
+        }
+
+        .call-status {
+            color: var(--tg-text-secondary);
+            margin-bottom: 30px;
+        }
+
+        .call-actions {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .call-action-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .call-action-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .call-action-btn.accept {
+            background: #28a745;
+            color: white;
+        }
+
+        .call-action-btn.decline {
+            background: #dc3545;
+            color: white;
+        }
+
+        .call-action-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        /* Call Controls Styles */
+        .call-controls {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--tg-bg);
+            border-radius: 15px;
+            padding: 15px 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            z-index: 999;
+            min-width: 200px;
+        }
+
+        .call-info-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            color: var(--tg-text);
+            font-size: 14px;
+        }
+
+        .call-control-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .call-control-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--tg-text-secondary);
+            color: white;
+            transition: background 0.2s;
+        }
+
+        .call-control-btn:hover {
+            background: var(--tg-accent);
+        }
+
+        .call-control-btn.end-call {
+            background: #dc3545;
+        }
+
+        .call-control-btn.end-call:hover {
+            background: #c82333;
+        }
+
+        .call-control-btn.muted {
+            background: #dc3545;
+        }
+
+        .call-control-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Attach button */
+        .attach-button {
+            background: var(--tg-text-secondary);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: white;
+            margin-right: 8px;
+        }
+
+        .attach-button:hover {
+            background: var(--tg-accent);
+        }
+
+        .attach-button svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+        /* Mobile responsive design */
+        @media (max-width: 768px) {
+            body {
+                background: var(--tg-bg) !important;
+                padding: 0 !important;
+            }
+
+            .app-container {
+                flex-direction: column;
+                max-width: none !important;
+                margin: 0 !important;
+                height: 100vh !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+
+            .loading-screen {
+                border-radius: 0 !important;
+                max-width: none !important;
+                margin: 0 !important;
+                height: 100vh !important;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--tg-border);
+            }
+
+            .chat-container {
+                height: calc(100vh - 200px);
+                /* Better mobile viewport handling */
+                height: calc(100dvh - 200px); /* Dynamic viewport height */
+                min-height: calc(100vh - 200px); /* Fallback */
+            }
+
+            .message-bubble {
+                max-width: 85%;
+            }
+
+            /* Mobile input improvements */
+            .input-container {
+                padding: 12px 16px;
+                /* Stick to bottom on mobile */
+                position: sticky;
+                bottom: 0;
+                /* Handle virtual keyboard */
+                padding-bottom: max(12px, env(safe-area-inset-bottom));
+            }
+
+            .input-area {
+                padding: 10px 14px;
+                border-radius: 24px;
+            }
+
+            .message-input {
+                font-size: 16px; /* Prevent zoom on iOS */
+                padding: 10px 0;
+                min-height: 24px;
+            }
+
+            .attach-button, .call-button, .send-button {
+                width: 36px;
+                height: 36px;
+                flex-shrink: 0;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar-header {
+                padding: 16px;
+            }
+
+            .connection-form {
+                padding: 16px;
+            }
+
+            .chat-header {
+                padding: 12px 16px;
+            }
+
+            .messages-container {
+                padding: 16px;
+                /* Better mobile scrolling */
+                -webkit-overflow-scrolling: touch;
+                /* Account for virtual keyboard */
+                padding-bottom: 20px;
+            }
+
+            .input-container {
+                padding: 10px 12px;
+                /* Enhanced mobile keyboard support */
+                padding-bottom: max(10px, env(safe-area-inset-bottom));
+            }
+
+            .input-area {
+                padding: 8px 12px;
+                border-radius: 20px;
+                min-height: 40px;
+                align-items: center;
+            }
+
+            .message-input {
+                font-size: 16px; /* Critical for iOS to prevent zoom */
+                line-height: 1.3;
+                padding: 8px 0;
+                min-height: 20px;
+            }
+
+            .attach-button, .call-button, .send-button {
+                width: 32px;
+                height: 32px;
+            }
+
+            .attach-button {
+                margin-right: 4px;
+            }
+
+            .send-button {
+                margin-left: 4px;
+            }
+
+            .attach-button svg, .send-button svg {
+                width: 14px;
+                height: 14px;
+            }
+
+            /* Form inputs mobile optimization */
+            .form-input {
+                font-size: 16px; /* Prevent zoom on iOS */
+                padding: 14px 16px;
+                border-radius: 12px;
+                min-height: 44px; /* iOS touch target minimum */
+                box-sizing: border-box;
+            }
+
+            .form-button {
+                padding: 14px;
+                font-size: 16px;
+                border-radius: 12px;
+                min-height: 44px; /* iOS touch target minimum */
+                touch-action: manipulation;
+            }
+
+            /* Mobile-specific chat improvements */
+            .chat-header {
+                padding: 10px 12px;
+                min-height: 60px;
+                box-sizing: border-box;
+            }
+
+            .chat-avatar {
+                width: 36px;
+                height: 36px;
+                font-size: 14px;
+            }
+
+            .chat-details h3 {
+                font-size: 15px;
+                line-height: 1.2;
+            }
+
+            .chat-status, .chat-users {
+                font-size: 12px;
+                line-height: 1.2;
+            }
+
+            /* Better touch targets for buttons */
+            .theme-toggle, .reconnect-button, .clear-chat-button {
+                min-width: 44px;
+                min-height: 44px;
+                padding: 12px;
+            }
+
+            /* Improved message bubbles for mobile */
+            .message-bubble {
+                max-width: 90%;
+                font-size: 15px;
+                line-height: 1.3;
+                padding: 10px 14px;
+                border-radius: 16px;
+            }
+
+            .message.outgoing .message-bubble {
+                border-bottom-right-radius: 6px;
+            }
+
+            .message.incoming .message-bubble {
+                border-bottom-left-radius: 6px;
+            }
+        }
+
+        /* Privacy blur effect */
+        .blurred {
+            filter: blur(8px) brightness(0.8);
+            pointer-events: none;
+            user-select: none;
+            transition: filter 0.3s;
+        }
+
+        .blurred::after {
+            content: '🔒 Privacy: Window not in focus';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 16px;
+            background: rgba(0,0,0,0.8);
+            padding: 16px 24px;
+            border-radius: 12px;
+            z-index: 1000;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        /* Scrollbar styling */
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: var(--tg-text-secondary);
+            border-radius: 3px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: var(--tg-accent);
+        }
+
+        /* Mobile virtual keyboard handling */
+        @supports (height: 100dvh) {
+            @media (max-width: 768px) {
+                .chat-container {
+                    height: calc(100dvh - 200px);
+                }
+            }
+        }
+
+        /* iOS Safari specific fixes */
+        @supports (-webkit-touch-callout: none) {
+            .input-container {
+                /* Ensure input area stays visible above virtual keyboard */
+                position: -webkit-sticky;
+                position: sticky;
+                bottom: 0;
+                z-index: 100;
+            }
+
+            .message-input {
+                /* Prevent iOS zoom */
+                font-size: 16px !important;
+                transform: translateZ(0); /* Force hardware acceleration */
+            }
+        }
+
+        /* Android Chrome specific fixes */
+        @media screen and (max-width: 768px) {
+            .app-container.keyboard-open {
+                height: 100vh;
+                overflow: hidden;
+            }
+
+            .app-container.keyboard-open .chat-container {
+                height: calc(100vh - 120px);
+                overflow: hidden;
+            }
+
+            .app-container.keyboard-open .messages-container {
+                height: calc(100% - 80px);
+                overflow-y: auto;
+            }
+        }
+
+        /* Mobile-specific animations and transitions */
+        @media (max-width: 768px) {
+            /* Smooth transitions for mobile interactions */
+            .form-input, .form-button, .send-button, .theme-toggle, .reconnect-button, .clear-chat-button {
+                transition: all 0.2s ease;
+            }
+
+            /* Touch feedback animations */
+            .form-button:active, .send-button:active, .theme-toggle:active, .reconnect-button:active, .clear-chat-button:active {
+                transform: scale(0.95);
+                transition: transform 0.1s ease;
+            }
+
+            /* Improved message animations for mobile */
+            .message {
+                animation: messageSlideInMobile 0.4s ease-out;
+            }
+
+            @keyframes messageSlideInMobile {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px) scale(0.95);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+
+            /* Smooth sidebar transitions */
+            .sidebar, .chat-container {
+                transition: transform 0.3s ease, opacity 0.3s ease;
+            }
+
+            .sidebar.hidden {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+
+            .chat-container.hidden {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            /* Loading states for mobile */
+            .reconnect-button.connecting {
+                animation: pulse 1.5s ease-in-out infinite;
+            }
+
+            @keyframes pulse {
+                0% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.7; transform: scale(1.05); }
+                100% { opacity: 1; transform: scale(1); }
+            }
+
+            /* Better focus states for mobile */
+            .form-input:focus, .message-input:focus {
+                transform: scale(1.02);
+                box-shadow: 0 0 0 2px var(--tg-accent);
+                border-color: var(--tg-accent);
+            }
+
+            /* Improved scrollbar for mobile */
+            .messages-container::-webkit-scrollbar {
+                width: 3px;
+            }
+
+            .messages-container::-webkit-scrollbar-thumb {
+                background: var(--tg-accent);
+                border-radius: 2px;
+            }
+        }
+
+        /* Very small devices (iPhone SE, small Android phones) */
+        @media (max-width: 375px) {
+            .chat-header {
+                padding: 8px 10px;
+                min-height: 50px;
+            }
+
+            .chat-title {
+                font-size: 16px;
+            }
+
+            .chat-status, .chat-users {
+                font-size: 11px;
+            }
+
+            .theme-toggle, .reconnect-button, .clear-chat-button {
+                min-width: 40px;
+                min-height: 40px;
+                padding: 10px;
+            }
+
+            .theme-toggle svg, .reconnect-button svg, .clear-chat-button svg {
+                width: 16px;
+                height: 16px;
+            }
+
+            .messages-container {
+                padding: 12px;
+            }
+
+            .message-bubble {
+                max-width: 92%;
+                font-size: 14px;
+                padding: 8px 12px;
+            }
+
+            .input-container {
+                padding: 8px 10px;
+            }
+
+            .input-area {
+                padding: 6px 10px;
+            }
+
+            .attach-button, .call-button, .send-button {
+                width: 28px;
+                height: 28px;
+            }
+
+            .attach-button svg, .send-button svg {
+                width: 12px;
+                height: 12px;
+            }
+
+            .form-input {
+                font-size: 16px;
+                padding: 12px 14px;
+                min-height: 40px;
+            }
+
+            .form-button {
+                padding: 12px;
+                font-size: 15px;
+                min-height: 40px;
+            }
+        }
+
+        /* Extra small devices (very old phones) */
+        @media (max-width: 320px) {
+            .chat-header {
+                padding: 6px 8px;
+                min-height: 45px;
+            }
+
+            .chat-title {
+                font-size: 15px;
+            }
+
+            .theme-toggle, .reconnect-button, .clear-chat-button {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 8px;
+            }
+
+            .messages-container {
+                padding: 10px;
+            }
+
+            .message-bubble {
+                max-width: 95%;
+                font-size: 13px;
+                padding: 6px 10px;
+            }
+
+            .input-container {
+                padding: 6px 8px;
+            }
+
+            .attach-button, .call-button, .send-button {
+                width: 26px;
+                height: 26px;
+            }
+
+            .form-input {
+                padding: 10px 12px;
+                min-height: 36px;
+            }
+
+            .form-button {
+                padding: 10px;
+                font-size: 14px;
+                min-height: 36px;
+            }
+        }
+
+        /* Landscape orientation on small devices */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .chat-container {
+                height: calc(100vh - 120px);
+                height: calc(100dvh - 120px);
+            }
+
+            .sidebar {
+                height: calc(100vh - 120px);
+                height: calc(100dvh - 120px);
+            }
+
+            .messages-container {
+                padding: 8px 16px;
+            }
+
+            .input-container {
+                padding: 6px 16px;
+            }
+        }
+
+        /* High DPI displays */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .theme-toggle svg, .reconnect-button svg, .clear-chat-button svg,
+            .attach-button svg, .send-button svg {
+                image-rendering: -webkit-optimize-contrast;
+                image-rendering: crisp-edges;
+            }
+        }
+
+        /* Reduce motion for accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Dark mode improvements for small devices */
+        @media (max-width: 375px) and (prefers-color-scheme: dark) {
+            .message-bubble {
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            }
+
+            .input-area {
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            }
+        }
+
+        /* Loading screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--tg-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loading-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--tg-accent), #00ffe7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 32px;
+            box-shadow: 0 8px 32px rgba(79, 140, 255, 0.4);
+            animation: loadingPulse 2s ease-in-out infinite;
+            margin-bottom: 24px;
+        }
+
+        .loading-text {
+            font-family: 'Orbitron', monospace;
+            font-size: 24px;
+            font-weight: 500;
+            background: linear-gradient(135deg, var(--tg-accent), #00ffe7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .loading-subtitle {
+            color: var(--tg-text-secondary);
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        @keyframes loadingPulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 8px 32px rgba(79, 140, 255, 0.4);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 12px 48px rgba(79, 140, 255, 0.6);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-logo">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L9 7V9C9 10 8 11 7 11V13C8 13 9 14 9 15V19C9 20.1 9.9 21 11 21H13C14.1 21 15 20.1 15 19V15C15 14 16 13 17 13V11C16 11 15 10 15 9ZM11 15H13V19H11V15Z"/>
+            </svg>
+        </div>
+        <div class="loading-text">WhisperSphere</div>
+        <div class="loading-subtitle">Secure P2P Chat</div>
+    </div>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">
+                    <div class="app-logo">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L9 7V9C9 10 8 11 7 11V13C8 13 9 14 9 15V19C9 20.1 9.9 21 11 21H13C14.1 21 15 20.1 15 19V15C15 14 16 13 17 13V11C16 11 15 10 15 9ZM11 15H13V19H11V15Z"/>
+                        </svg>
+                    </div>
+                    <span class="app-name">WhisperSphere</span>
+                </h1>
+            </div>
+
+            <div class="connection-form" id="connectionForm">
+                <div class="form-group">
+                    <label class="form-label" for="room">Secret Code</label>
+                    <input type="text" id="room" class="form-input" placeholder="Enter or generate secret code" required autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="sessionpw">Session Password</label>
+                    <input type="password" id="sessionpw" class="form-input" placeholder="Set by room creator" required autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="nickname">Your Nickname</label>
+                    <input type="text" id="nickname" class="form-input" placeholder="Enter your nickname" required autocomplete="off">
+                </div>
+
+                <button class="form-button" onclick="joinChat()">Join Secure Chat</button>
+
+                <div class="app-footer">
+                    <div class="footer-content">
+                        <div class="footer-logo">
+                            <div class="app-logo" style="width: 24px; height: 24px; font-size: 12px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L9 7V9C9 10 8 11 7 11V13C8 13 9 14 9 15V19C9 20.1 9.9 21 11 21H13C14.1 21 15 20.1 15 19V15C15 14 16 13 17 13V11C16 11 15 10 15 9ZM11 15H13V19H11V15Z"/>
+                                </svg>
+                            </div>
+                            <span style="font-size: 14px; font-weight: 500; color: var(--tg-text-secondary);">WhisperSphere</span>
+                        </div>
+                        <div class="footer-text">
+                            <p>🔐 End-to-end encrypted • 🌐 Peer-to-peer • 🔒 No data stored</p>
+                            <p style="font-size: 11px; opacity: 0.7;">Secure group chat with secret codes</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-container hidden" id="chatContainer">
+            <div class="chat-header">
+                <div class="chat-info">
+                    <div class="chat-avatar" id="chatAvatar">🔒</div>
+                    <div class="chat-details">
+                        <h3 id="chatTitle">Secure Chat</h3>
+                        <p class="chat-status" id="chatStatus">Connecting...</p>
+                        <p class="chat-users" id="userCount">Users: 0</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="reconnect-button" id="backToJoinButton" title="Back to join form" onclick="backToJoinForm()" style="display: none;">
+                        <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;">
+                            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                        </svg>
+                    </button>
+                    <button class="reconnect-button" id="reconnectButton" title="Reconnect to chat" onclick="manualReconnect()" style="display: none;">
+                        <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;">
+                            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                        </svg>
+                    </button>
+                    <button class="clear-chat-button" id="clearChatButton" title="Clear all messages" onclick="clearChat()">
+                        <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                    </button>
+                    <button class="theme-toggle" id="themeToggle" title="Toggle light/dark mode" onclick="toggleTheme()">
+                        <svg id="themeIcon" viewBox="0 0 24 24"><path d="M12 3a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1zm5.657 3.343a1 1 0 0 1 1.414 1.414l-.707.707a1 1 0 1 1-1.414-1.414l.707-.707zM21 11a1 1 0 1 1 0 2h-1a1 1 0 1 1 0-2h1zm-2.343 7.657a1 1 0 0 1-1.414 1.414l-.707-.707a1 1 0 1 1 1.414-1.414l.707.707zM12 19a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1zm-7.657-3.343a1 1 0 0 1-1.414-1.414l.707-.707a1 1 0 1 1 1.414 1.414l-.707.707zM3 13a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H3zm2.343-7.657a1 1 0 0 1 1.414-1.414l.707.707A1 1 0 1 1 6.05 6.464l-.707-.707zM12 7a5 5 0 1 1 0 10A5 5 0 0 1 12 7z"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="messages-container" id="messagesContainer">
+                <!-- Messages will be added here -->
+            </div>
+
+            <div class="input-container">
+                <div class="input-area">
+                    <button class="attach-button" id="attachButton" onclick="selectFile()"
+                            aria-label="Attach file" title="Attach image or video">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/>
+                        </svg>
+                    </button>
+                    <textarea id="messageInput" class="message-input" placeholder="Type a message..." rows="1"
+                              autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="true"
+                              enterkeyhint="send" inputmode="text" aria-label="Type your message"
+                              role="textbox" aria-multiline="true"></textarea>
+                    <button class="call-button" id="callButton" onclick="toggleVoiceCall()"
+                            aria-label="Voice call" title="Start voice call">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                        </svg>
+                    </button>
+                    <button class="send-button" id="sendButton" onclick="sendMessage()"
+                            aria-label="Send message" title="Send message">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                    </button>
+                </div>
+
+                <!-- Hidden file input -->
+                <input type="file" id="fileInput" accept="image/*,video/*" style="display: none;" onchange="handleFileSelect(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- Incoming Call Notification -->
+    <div id="incomingCallModal" class="call-modal" style="display: none;">
+        <div class="call-modal-content">
+            <div class="call-avatar">📞</div>
+            <div class="call-info">
+                <div class="caller-name" id="callerName">Unknown</div>
+                <div class="call-status">Incoming voice call...</div>
+            </div>
+            <div class="call-actions">
+                <button class="call-action-btn decline" onclick="declineCall()">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.7l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28-.79-.73-1.68-1.36-2.66-1.85-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
+                    </svg>
+                </button>
+                <button class="call-action-btn accept" onclick="acceptCall()">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call Controls (shown during active call) -->
+    <div id="callControls" class="call-controls" style="display: none;">
+        <div class="call-info-bar">
+            <span id="callStatus">Connected</span>
+            <span id="callDuration">00:00</span>
+        </div>
+        <div class="call-control-buttons">
+            <button class="call-control-btn" id="muteButton" onclick="toggleMute()">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                </svg>
+            </button>
+            <button class="call-control-btn end-call" onclick="endCall()">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.7l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28-.79-.73-1.68-1.36-2.66-1.85-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let ws, room, nickname, hashedRoom, metaKey;
+        let myKeyPair, sharedSecret, peerPublicKey;
+        let readyForChat = false;
+        let sentMyPubkey = false;
+        let receivedPeerPubkey = false;
+
+        // Multi-user and reconnection support
+        let connectedPeers = new Map(); // Map of peer public keys to their info
+        let isConnecting = false;
+        let reconnectAttempts = 0;
+        let maxReconnectAttempts = 5;
+        let reconnectDelay = 1000; // Start with 1 second
+        let connectionLost = false;
+        let sessionData = null; // Store session data for reconnection
+
+        // Group chat encryption - shared key for all users in the room
+        let groupChatKey = null;
+
+        // Voice calling variables
+        let isInCall = false;
+        let isCallInitiator = false;
+        let currentCaller = null;
+        let mediaRecorder = null;
+        let audioStream = null;
+        let audioContext = null;
+        let audioChunks = [];
+        let isMuted = false;
+        let callStartTime = null;
+        let callDurationInterval = null;
+        let audioQuality = 'high'; // 'standard' (64kbps), 'high' (128kbps), 'ultra' (256kbps)
+
+        // Audio playback variables
+        let audioPlaybackElement = null;
+        let mediaSource = null;
+        let sourceBuffer = null;
+        let audioQueue = [];
+        let isPlayingAudio = false;
+        let pendingAudioChunks = [];
+        let mediaSourceReady = false;
+
+        // Double Ratchet State
+        let ratchetState = {
+            // DH Ratchet
+            DHs: null,          // Our current DH key pair
+            DHr: null,          // Their current DH public key
+            RK: null,           // Root key
+
+            // Sending Chain
+            CKs: null,          // Chain key for sending
+            Ns: 0,              // Message number for sending
+
+            // Receiving Chain
+            CKr: null,          // Chain key for receiving
+            Nr: 0,              // Message number for receiving
+
+            // Message Keys
+            MKSKIPPED: new Map(), // Skipped message keys for out-of-order messages
+
+            // State
+            initialized: false,
+            isAlice: false      // Who initiated the ratchet
+        };
+
+        let messageBuffer = new Map(); // Buffer for out-of-order messages
+
+        // Theme toggle
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+            const icon = document.getElementById('themeIcon');
+            if (document.body.classList.contains('light-theme')) {
+                icon.innerHTML = '<path d="M12 3a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1zm5.657 3.343a1 1 0 0 1 1.414 1.414l-.707.707a1 1 0 1 1-1.414-1.414l.707-.707zM21 11a1 1 0 1 1 0 2h-1a1 1 0 1 1 0-2h1zm-2.343 7.657a1 1 0 0 1-1.414 1.414l-.707-.707a1 1 0 1 1 1.414-1.414l.707.707zM12 19a1 1 0 0 1-1-1v-1a1 1 0 1 1 2 0v1a1 1 0 0 1-1 1zm-7.657-3.343a1 1 0 0 1-1.414-1.414l.707-.707a1 1 0 1 1 1.414 1.414l-.707.707zM3 13a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2H3zm2.343-7.657a1 1 0 0 1 1.414-1.414l.707.707A1 1 0 1 1 6.05 6.464l-.707-.707zM12 7a5 5 0 1 1 0 10A5 5 0 0 1 12 7z"/>';
+            } else {
+                icon.innerHTML = '<path d="M21.64 13.64a1 1 0 0 1-1.27.62A9 9 0 0 1 9.74 3.63a1 1 0 0 1 .62-1.27A1 1 0 0 1 11 2a10 10 0 1 0 10 10 1 1 0 0 1-.36-.36z"/>';
+            }
+        }
+
+        async function hashRoomCode(roomCode) {
+            // Check if crypto.subtle is available
+            if (!window.crypto || !window.crypto.subtle) {
+                throw new Error('Web Crypto API not available. Please use HTTPS or localhost.');
+            }
+            
+            const encoder = new TextEncoder();
+            const data = encoder.encode(roomCode);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function deriveMetaKey(roomCode) {
+            // Check if crypto.subtle is available
+            if (!window.crypto || !window.crypto.subtle) {
+                throw new Error('Web Crypto API not available. Please use HTTPS or localhost.');
+            }
+            
+            const encoder = new TextEncoder();
+            const salt = encoder.encode('whispersphere-meta');
+            const keyMaterial = await window.crypto.subtle.importKey(
+                'raw', encoder.encode(roomCode), {name: 'PBKDF2'}, false, ['deriveKey']
+            );
+            return await window.crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        // Derive group chat key from room secret (for multi-user encryption)
+        async function deriveGroupChatKey(roomCode) {
+            const encoder = new TextEncoder();
+            const salt = encoder.encode('whispersphere-group-chat');
+            const keyMaterial = await window.crypto.subtle.importKey(
+                'raw', encoder.encode(roomCode), {name: 'PBKDF2'}, false, ['deriveKey']
+            );
+            return await window.crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        // ===== DOUBLE RATCHET CRYPTOGRAPHIC FUNCTIONS =====
+
+        // HKDF implementation for key derivation
+        async function hkdf(inputKeyMaterial, salt, info, length = 32) {
+            const encoder = new TextEncoder();
+
+            // Extract phase
+            const saltKey = await crypto.subtle.importKey(
+                'raw', salt, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+            );
+            const prk = await crypto.subtle.sign('HMAC', saltKey, inputKeyMaterial);
+
+            // Expand phase
+            const prkKey = await crypto.subtle.importKey(
+                'raw', prk, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+            );
+
+            const infoBytes = encoder.encode(info);
+            const n = Math.ceil(length / 32);
+            let t = new Uint8Array(0);
+            let okm = new Uint8Array(0);
+
+            for (let i = 1; i <= n; i++) {
+                const input = new Uint8Array(t.length + infoBytes.length + 1);
+                input.set(t);
+                input.set(infoBytes, t.length);
+                input[input.length - 1] = i;
+
+                t = new Uint8Array(await crypto.subtle.sign('HMAC', prkKey, input));
+
+                const newOkm = new Uint8Array(okm.length + t.length);
+                newOkm.set(okm);
+                newOkm.set(t, okm.length);
+                okm = newOkm;
+            }
+
+            return okm.slice(0, length);
+        }
+
+        // KDF_RK: Root key derivation
+        async function kdfRK(rk, dhOut) {
+            const salt = new Uint8Array(32); // Zero salt
+            const okm = await hkdf(dhOut, salt, 'WhisperSphere-RootKey', 64);
+            return {
+                rootKey: okm.slice(0, 32),
+                chainKey: okm.slice(32, 64)
+            };
+        }
+
+        // KDF_CK: Chain key derivation
+        async function kdfCK(ck) {
+            const ckKey = await crypto.subtle.importKey(
+                'raw', ck, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+            );
+
+            // Next chain key
+            const nextCK = new Uint8Array(await crypto.subtle.sign('HMAC', ckKey, new Uint8Array([0x02])));
+
+            // Message key
+            const messageKey = new Uint8Array(await crypto.subtle.sign('HMAC', ckKey, new Uint8Array([0x01])));
+
+            return {
+                chainKey: nextCK,
+                messageKey: messageKey
+            };
+        }
+
+        // Generate new DH key pair
+        async function generateDHKeyPair() {
+            return await window.crypto.subtle.generateKey(
+                { name: "ECDH", namedCurve: "P-256" },
+                true,
+                ["deriveKey", "deriveBits"]
+            );
+        }
+
+        // Perform DH operation
+        async function performDH(privateKey, publicKey) {
+            const sharedBits = await window.crypto.subtle.deriveBits(
+                { name: "ECDH", public: publicKey },
+                privateKey,
+                256
+            );
+            return new Uint8Array(sharedBits);
+        }
+
+        // ===== DOUBLE RATCHET STATE MANAGEMENT =====
+
+        // Initialize ratchet as Alice (initiator)
+        async function initializeRatchetAlice(sharedKey, bobPublicKey) {
+
+
+            // Generate initial DH key pair
+            ratchetState.DHs = await generateDHKeyPair();
+            ratchetState.DHr = bobPublicKey;
+
+            // Perform initial DH
+            const dhOut = await performDH(ratchetState.DHs.privateKey, ratchetState.DHr);
+
+            // Derive root key and sending chain key
+            const kdfResult = await kdfRK(sharedKey, dhOut);
+            ratchetState.RK = kdfResult.rootKey;
+            ratchetState.CKs = kdfResult.chainKey;
+
+            // Initialize counters
+            ratchetState.Ns = 0;
+            ratchetState.Nr = 0;
+            ratchetState.CKr = null;
+
+            ratchetState.initialized = true;
+            ratchetState.isAlice = true;
+
+
+            updateRatchetDebugInfo();
+        }
+
+        // Initialize ratchet as Bob (receiver)
+        async function initializeRatchetBob(sharedKey) {
+
+
+            // Set initial state
+            ratchetState.RK = sharedKey;
+            ratchetState.DHs = await generateDHKeyPair(); // Bob needs his own DH key pair
+            ratchetState.DHr = null; // Will be set when receiving first message from Alice
+            ratchetState.CKs = null; // Will be set after first DH ratchet
+            ratchetState.CKr = null; // Will be set when receiving first message
+            ratchetState.Ns = 0;
+            ratchetState.Nr = 0;
+
+            ratchetState.initialized = true;
+            ratchetState.isAlice = false;
+
+
+            updateRatchetDebugInfo();
+        }
+
+        // Perform DH ratchet step
+        async function dhRatchet(header) {
+
+
+            // Skip message keys for the previous receiving chain
+            if (ratchetState.CKr !== null) {
+
+                await skipMessageKeys(header.pn);
+            }
+
+            // Update receiving chain with new DH key
+            ratchetState.DHr = await importPublicKey(header.dh);
+            const dhOut = await performDH(ratchetState.DHs.privateKey, ratchetState.DHr);
+            const kdfResult = await kdfRK(ratchetState.RK, dhOut);
+            ratchetState.RK = kdfResult.rootKey;
+            ratchetState.CKr = kdfResult.chainKey;
+            ratchetState.Nr = 0; // Reset for new receiving chain
+
+            // Generate new sending key pair
+            ratchetState.DHs = await generateDHKeyPair();
+            const dhOut2 = await performDH(ratchetState.DHs.privateKey, ratchetState.DHr);
+            const kdfResult2 = await kdfRK(ratchetState.RK, dhOut2);
+            ratchetState.RK = kdfResult2.rootKey;
+            ratchetState.CKs = kdfResult2.chainKey;
+            ratchetState.Ns = 0; // Reset for new sending chain
+
+
+            updateRatchetDebugInfo();
+        }
+
+        // Skip message keys for out-of-order messages
+        async function skipMessageKeys(until) {
+            if (ratchetState.Nr + 100 < until) {
+                throw new Error('Too many skipped messages');
+            }
+
+            if (ratchetState.CKr !== null) {
+                while (ratchetState.Nr < until) {
+                    const ckResult = await kdfCK(ratchetState.CKr);
+                    ratchetState.MKSKIPPED.set(
+                        `${arrayToBase64(await exportPublicKey(ratchetState.DHr))}-${ratchetState.Nr}`,
+                        ckResult.messageKey
+                    );
+                    ratchetState.CKr = ckResult.chainKey;
+                    ratchetState.Nr++;
+                }
+            }
+        }
+
+        // Clean up old skipped message keys (security measure)
+        function cleanupSkippedKeys() {
+            if (ratchetState.MKSKIPPED.size > 1000) {
+
+                const keys = Array.from(ratchetState.MKSKIPPED.keys());
+                keys.slice(0, 500).forEach(key => ratchetState.MKSKIPPED.delete(key));
+            }
+        }
+
+        // Helper function to convert array to base64
+        function arrayToBase64(array) {
+            return btoa(String.fromCharCode(...array));
+        }
+
+        // ===== MESSAGE KEY DERIVATION AND ENCRYPTION =====
+
+        // Derive message key for encryption
+        async function deriveMessageKeyForEncryption(messageKey) {
+            const salt = new Uint8Array(32); // Zero salt
+            const okm = await hkdf(messageKey, salt, 'WhisperSphere-MessageKey', 80);
+
+            return {
+                encryptionKey: await crypto.subtle.importKey(
+                    'raw', okm.slice(0, 32),
+                    { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']
+                ),
+                authKey: okm.slice(32, 64),
+                iv: okm.slice(64, 80)
+            };
+        }
+
+        // Encrypt message with ratchet
+        async function ratchetEncrypt(plaintext) {
+
+
+            if (!ratchetState.initialized) {
+                throw new Error('Ratchet not initialized');
+            }
+
+            if (!ratchetState.CKs) {
+                throw new Error('Sending chain not ready - wait for peer message first');
+            }
+
+            // Derive message key
+            const ckResult = await kdfCK(ratchetState.CKs);
+            const messageKeyMaterial = await deriveMessageKeyForEncryption(ckResult.messageKey);
+
+            // Create header
+            const header = {
+                dh: await exportPublicKey(ratchetState.DHs.publicKey),
+                pn: ratchetState.Nr,  // Previous number from receiving chain
+                n: ratchetState.Ns    // Current number in sending chain
+            };
+
+
+            // Encrypt message
+            const encoder = new TextEncoder();
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const ciphertext = await crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv },
+                messageKeyMaterial.encryptionKey,
+                encoder.encode(plaintext)
+            );
+
+            // Update state BEFORE returning (important for consecutive messages)
+            ratchetState.CKs = ckResult.chainKey;
+            const currentMessageNumber = ratchetState.Ns;
+            ratchetState.Ns++;
+
+            // Immediately delete the message key for forward secrecy
+            messageKeyMaterial.encryptionKey = null;
+
+
+            updateRatchetDebugInfo();
+
+            return {
+                header: header,
+                ciphertext: arrayToBase64(new Uint8Array(ciphertext)),
+                iv: arrayToBase64(iv)
+            };
+        }
+
+        // Decrypt message with ratchet
+        async function ratchetDecrypt(encryptedMessage) {
+
+
+            if (!ratchetState.initialized) {
+                throw new Error('Ratchet not initialized');
+            }
+
+            const { header, ciphertext, iv } = encryptedMessage;
+
+            // Check if we need to perform DH ratchet
+            const headerDH = await importPublicKey(header.dh);
+            const needsDHRatchet = !ratchetState.DHr ||
+                (await exportPublicKey(ratchetState.DHr)) !== header.dh;
+
+
+
+            let messageKey;
+            const dhKey = header.dh;
+            const messageNum = header.n;
+            const skippedKeyId = `${dhKey}-${messageNum}`;
+
+            // Check if we have a skipped message key
+            if (ratchetState.MKSKIPPED.has(skippedKeyId)) {
+
+                messageKey = ratchetState.MKSKIPPED.get(skippedKeyId);
+                ratchetState.MKSKIPPED.delete(skippedKeyId);
+            } else {
+                if (needsDHRatchet) {
+
+                    await dhRatchet(header);
+                }
+
+                // Skip message keys if needed (for consecutive messages)
+                while (ratchetState.Nr < header.n) {
+                    const ckResult = await kdfCK(ratchetState.CKr);
+                    ratchetState.MKSKIPPED.set(
+                        `${dhKey}-${ratchetState.Nr}`,
+                        ckResult.messageKey
+                    );
+                    ratchetState.CKr = ckResult.chainKey;
+                    ratchetState.Nr++;
+
+                }
+
+                // Derive message key for current message
+                const ckResult = await kdfCK(ratchetState.CKr);
+                messageKey = ckResult.messageKey;
+                // Don't update state until decryption succeeds
+                var newCKr = ckResult.chainKey;
+            }
+
+            // Derive encryption key
+            const messageKeyMaterial = await deriveMessageKeyForEncryption(messageKey);
+
+            // Decrypt message
+            const ciphertextBytes = Uint8Array.from(atob(ciphertext), c => c.charCodeAt(0));
+            const ivBytes = Uint8Array.from(atob(iv), c => c.charCodeAt(0));
+
+            const decrypted = await crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv: ivBytes },
+                messageKeyMaterial.encryptionKey,
+                ciphertextBytes
+            );
+
+
+            // Only update state after successful decryption
+            if (newCKr) {
+                ratchetState.CKr = newCKr;
+                ratchetState.Nr++;
+
+            }
+
+            // Immediately delete the message key for forward secrecy
+            messageKey = null;
+            messageKeyMaterial.encryptionKey = null;
+
+
+            updateRatchetDebugInfo();
+            cleanupSkippedKeys();
+
+            return new TextDecoder().decode(decrypted);
+        }
+
+        // ===== MESSAGE BUFFERING SYSTEM =====
+
+        // Buffer message for out-of-order processing
+        function bufferMessage(messageId, encryptedMessage, senderInfo) {
+
+            messageBuffer.set(messageId, {
+                encryptedMessage,
+                senderInfo,
+                timestamp: Date.now()
+            });
+
+            // Clean up old buffered messages (older than 5 minutes)
+            const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+            for (const [id, data] of messageBuffer.entries()) {
+                if (data.timestamp < fiveMinutesAgo) {
+                    messageBuffer.delete(id);
+                }
+            }
+        }
+
+        // Process buffered messages in order
+        async function processBufferedMessages() {
+            const processedMessages = [];
+
+            for (const [messageId, data] of messageBuffer.entries()) {
+                try {
+                    const plaintext = await ratchetDecrypt(data.encryptedMessage);
+                    processedMessages.push({
+                        messageId,
+                        plaintext,
+                        senderInfo: data.senderInfo
+                    });
+                    messageBuffer.delete(messageId);
+
+                } catch (error) {
+
+                }
+            }
+
+            return processedMessages;
+        }
+
+        // Try to decrypt message, buffer if keys not available
+        async function tryDecryptMessage(encryptedMessage, senderInfo) {
+            const messageId = `${encryptedMessage.header.dh}-${encryptedMessage.header.n}`;
+
+            try {
+                const plaintext = await ratchetDecrypt(encryptedMessage);
+
+                // Process any buffered messages that might now be decryptable
+                const bufferedMessages = await processBufferedMessages();
+
+                return {
+                    success: true,
+                    plaintext,
+                    bufferedMessages
+                };
+            } catch (error) {
+
+                // Buffer the message for later
+                bufferMessage(messageId, encryptedMessage, senderInfo);
+
+                return {
+                    success: false,
+                    error: error.message,
+                    buffered: true
+                };
+            }
+        }
+
+        // ===== DEBUG VISUALIZATION =====
+
+        let ratchetDebugExpanded = false;
+
+        function toggleRatchetDebug() {
+            ratchetDebugExpanded = !ratchetDebugExpanded;
+            updateRatchetDebugInfo();
+        }
+
+        function updateRatchetDebugInfo() {
+            const debugDiv = document.getElementById('ratchetDebug');
+            const statusDiv = document.getElementById('ratchetStatus');
+            const keysDiv = document.getElementById('ratchetKeys');
+            const countersDiv = document.getElementById('ratchetCounters');
+
+            if (!ratchetState.initialized) {
+                debugDiv.style.display = 'none';
+                return;
+            }
+
+            debugDiv.style.display = 'block';
+
+            // Status
+            const role = ratchetState.isAlice ? 'Alice (Initiator)' : 'Bob (Receiver)';
+            statusDiv.innerHTML = `
+                <div style="color: var(--accent);">✅ Active - Role: ${role}</div>
+                <div style="font-size: 10px; color: #888;">Buffered: ${messageBuffer.size} | Skipped: ${ratchetState.MKSKIPPED.size}</div>
+            `;
+
+            // Counters
+            countersDiv.innerHTML = `
+                <div>📤 Sent: ${ratchetState.Ns} messages</div>
+                <div>📥 Received: ${ratchetState.Nr} messages</div>
+            `;
+
+            // Keys (only show if expanded)
+            if (ratchetDebugExpanded) {
+                const truncate = (key, len = 8) => key ? key.slice(0, len) + '...' : 'null';
+                keysDiv.innerHTML = `
+                    <div style="font-size: 10px; color: #666;">
+                        <div>RK: ${truncate(ratchetState.RK ? arrayToBase64(ratchetState.RK) : null)}</div>
+                        <div>CKs: ${truncate(ratchetState.CKs ? arrayToBase64(ratchetState.CKs) : null)}</div>
+                        <div>CKr: ${truncate(ratchetState.CKr ? arrayToBase64(ratchetState.CKr) : null)}</div>
+                    </div>
+                `;
+            } else {
+                keysDiv.innerHTML = '<div style="font-size: 10px; color: #666;">Keys: Hidden (click Toggle Details)</div>';
+            }
+        }
+
+        async function encryptMeta(text) {
+            const enc = new TextEncoder();
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const ciphertext = await window.crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv },
+                metaKey,
+                enc.encode(text)
+            );
+            return { data: btoa(String.fromCharCode(...new Uint8Array(ciphertext))), iv: btoa(String.fromCharCode(...iv)) };
+        }
+        async function decryptMeta(b64cipher, b64iv) {
+            const ciphertext = Uint8Array.from(atob(b64cipher), c => c.charCodeAt(0));
+            const iv = Uint8Array.from(atob(b64iv), c => c.charCodeAt(0));
+            const decrypted = await window.crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv },
+                metaKey,
+                ciphertext
+            );
+            return new TextDecoder().decode(decrypted);
+        }
+
+        // Generate a strong random code on page load
+        function generateRandomCode(length = 16) {
+            const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+            let result = '';
+            const array = new Uint8Array(length);
+            window.crypto.getRandomValues(array);
+            for (let i = 0; i < length; i++) {
+                result += charset[array[i] % charset.length];
+            }
+            return result;
+        }
+        // Clear chat messages function
+        function clearChatMessages() {
+            const messages = document.getElementById('messagesContainer');
+            if (messages) {
+                messages.innerHTML = '';
+            }
+        }
+
+        // Hide loading screen after page loads
+        function hideLoadingScreen() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen) {
+                loadingScreen.classList.add('hidden');
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                }, 500);
+            }
+        }
+
+        window.onload = () => {
+            document.getElementById('room').value = generateRandomCode();
+            // Clear any existing chat messages on page load/refresh
+            clearChatMessages();
+            // Reset chat interface to initial state
+            document.getElementById('sidebar').classList.remove('hidden');
+            document.getElementById('chatContainer').classList.add('hidden');
+
+            // Show back button when in chat mode
+            document.getElementById('backToJoinButton').style.display =
+                document.getElementById('chatContainer').classList.contains('hidden') ? 'none' : 'block';
+
+            // Hide loading screen after a brief delay
+            setTimeout(hideLoadingScreen, 1000);
+        };
+
+        async function joinChat() {
+            room = document.getElementById('room').value.trim();
+            const sessionpw = document.getElementById('sessionpw').value.trim();
+            nickname = document.getElementById('nickname').value.trim();
+            if (!room || !nickname || !sessionpw) return alert('Please enter all fields.');
+
+            try {
+                // Combine room and session password for hashing/derivation
+                const combinedSecret = room + ':' + sessionpw;
+                hashedRoom = await hashRoomCode(combinedSecret);
+                metaKey = await deriveMetaKey(combinedSecret);
+                
+                // Derive group chat key for multi-user encryption
+                groupChatKey = await deriveGroupChatKey(combinedSecret);
+            } catch (error) {
+                alert('Crypto Error: ' + error.message + '\n\nPlease ensure you are using HTTPS or localhost.');
+                return;
+            }
+
+            // Save session data for reconnection
+            saveSessionData();
+
+            document.getElementById('sidebar').classList.add('hidden');
+            document.getElementById('chatContainer').classList.remove('hidden');
+            document.getElementById('chatTitle').textContent = `Room: ${room.substring(0, 8)}...`;
+            document.getElementById('chatAvatar').textContent = nickname.charAt(0).toUpperCase();
+            document.getElementById('userCount').textContent = 'Users: 0';
+
+            // Show back to join button
+            document.getElementById('backToJoinButton').style.display = 'block';
+
+            await generateKeyPair();
+
+            // Reset connection state
+            sentMyPubkey = false;
+            receivedPeerPubkey = false;
+            peerPublicKey = null;
+            sharedSecret = null;
+            readyForChat = false;
+            connectedPeers.clear();
+            reconnectAttempts = 0;
+            connectionLost = false;
+
+            connectWS();
+        }
+        async function generateKeyPair() {
+            myKeyPair = await window.crypto.subtle.generateKey(
+                { name: "ECDH", namedCurve: "P-256" },
+                true,
+                ["deriveKey", "deriveBits"]
+            );
+        }
+        async function exportPublicKey(key) {
+            const raw = await window.crypto.subtle.exportKey("raw", key);
+            return btoa(String.fromCharCode(...new Uint8Array(raw)));
+        }
+        async function importPublicKey(b64) {
+            const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+            return await window.crypto.subtle.importKey(
+                "raw",
+                raw,
+                { name: "ECDH", namedCurve: "P-256" },
+                true,
+                []
+            );
+        }
+        async function deriveSharedSecret(theirPublicKey) {
+            return await window.crypto.subtle.deriveKey(
+                {
+                    name: "ECDH",
+                    public: theirPublicKey
+                },
+                myKeyPair.privateKey,
+                { name: "AES-GCM", length: 256 },
+                true,  // Make key extractable for Double Ratchet
+                ["encrypt", "decrypt"]
+            );
+        }
+        function connectWS() {
+            if (isConnecting) return;
+            isConnecting = true;
+
+            // Show connecting status
+            updateConnectionStatus('Connecting...', false);
+
+            // Use wss:// for HTTPS sites (like Render.com) and ws:// for HTTP (localhost)
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${location.host}/ws/${hashedRoom}`;
+
+
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = async () => {
+                isConnecting = false;
+                reconnectAttempts = 0;
+                reconnectDelay = 1000;
+                connectionLost = false;
+
+                updateConnectionStatus('Connected! Joining room...', false);
+
+                // Encrypt nickname before sending
+                const encNick = await encryptMeta(nickname);
+                // Send our public key and encrypted nickname
+                const myPub = await exportPublicKey(myKeyPair.publicKey);
+                ws.send(JSON.stringify({ type: "pubkey", nickname: encNick.data, nickiv: encNick.iv, key: myPub }));
+                sentMyPubkey = true;
+
+                // If we have group chat key, we're ready immediately
+                if (groupChatKey) {
+                    updateConnectionStatus('Group chat ready • Online', true);
+                    readyForChat = true;
+                    showMobileNotification('🔐 Group chat ready!', 'success');
+                }
+
+                // Hide reconnect button
+                document.getElementById('reconnectButton').style.display = 'none';
+
+                // Show success notification on mobile
+                if (reconnectAttempts > 0) {
+                    showMobileNotification('✅ Reconnected successfully!', 'success');
+                }
+            };
+            ws.onmessage = async (event) => {
+                const msg = JSON.parse(event.data);
+                if (msg.type === "pubkey") {
+                    // Multi-user support: Accept multiple peer connections
+                    const peerKey = msg.key;
+                    const peerNick = msg.nickname ? await decryptMeta(msg.nickname, msg.nickiv) : 'Unknown';
+
+                    // Don't add ourselves
+                    const myPub = await exportPublicKey(myKeyPair.publicKey);
+                    if (peerKey !== myPub) {
+                        const peerPublicKeyObj = await importPublicKey(peerKey);
+                        const peerSharedSecret = await deriveSharedSecret(peerPublicKeyObj);
+
+                        // Store peer info
+                        connectedPeers.set(peerKey, {
+                            publicKey: peerPublicKeyObj,
+                            sharedSecret: peerSharedSecret,
+                            nickname: peerNick
+                        });
+
+                        // Set primary peer for backward compatibility (P2P mode)
+                        if (!receivedPeerPubkey && !groupChatKey) {
+                            peerPublicKey = peerPublicKeyObj;
+                            sharedSecret = peerSharedSecret;
+                            receivedPeerPubkey = true;
+
+                            updateConnectionStatus('P2P chat ready • Online', true);
+                            readyForChat = true;
+                            showMobileNotification('🔐 P2P chat ready!', 'success');
+                        } else if (groupChatKey) {
+                            // Group chat mode - we're already ready
+                        }
+                    }
+                } else if (msg.type === "msg") {
+                    // Check if we have group chat key (for multi-user) or shared secret (for P2P)
+                    if (!groupChatKey && !sharedSecret) {
+                        return;
+                    }
+
+                    const senderNick = msg.nickname ? await decryptMeta(msg.nickname, msg.nickiv) : 'Unknown';
+
+                    // Use group chat key for multi-user decryption
+                    try {
+                        const plaintext = await decryptMessage(msg.data, msg.iv);
+                        addMessage(senderNick + ': ' + plaintext, false);
+                    } catch (error) {
+                        addMessage(`❌ Failed to decrypt message from ${senderNick}`, true);
+                    }
+                } else if (msg.type === "userlist") {
+                    // Decrypt all nicknames in the user list
+                    let userList = [];
+                    for (let i = 0; i < msg.users.length; ++i) {
+                        try {
+                            userList.push(await decryptMeta(msg.users[i].data, msg.users[i].iv));
+                        } catch (e) {
+                            userList.push('Secured');
+                        }
+                    }
+                    document.getElementById('userCount').textContent = `Users: ${msg.count}`;
+                } else if (msg.type === "join") {
+                    let joinNick = 'Secured';
+                    try {
+                        joinNick = await decryptMeta(msg.nickname, msg.nickiv);
+                    } catch (e) {}
+                    addMessage(`🔵 ${joinNick} joined the chat.`, true);
+                } else if (msg.type === "leave") {
+                    let leaveNick = 'Secured';
+                    try {
+                        leaveNick = await decryptMeta(msg.nickname, msg.nickiv);
+                    } catch (e) {}
+                    addMessage(`🔴 ${leaveNick} left the chat.`, true);
+
+                    // Remove from connected peers if we have their key
+                    // (This is a simplified approach - in practice we'd need better peer tracking)
+                } else if (msg.type === "file_start" || msg.type === "file_chunk" || msg.type === "file_complete") {
+                    // Handle file messages
+                    handleFileMessage(msg);
+                } else if (msg.type === "clear_chat") {
+                    // Handle clear chat message
+                    let clearerNick = 'Someone';
+                    try {
+                        clearerNick = msg.nickname ? await decryptMeta(msg.nickname, msg.nickiv) : 'Someone';
+                    } catch (e) {
+                        clearerNick = 'Someone';
+                    }
+
+                    // Clear local chat for this user
+                    clearLocalChat();
+                } else if (msg.type === "call_offer") {
+                    // Handle incoming call offer
+                    if (!isInCall) {
+                        try {
+                            currentCaller = msg.nickname ? await decryptMeta(msg.nickname, msg.nickiv) : 'Unknown';
+                            document.getElementById('callerName').textContent = currentCaller;
+                            document.getElementById('incomingCallModal').style.display = 'flex';
+                            addMessage(`📞 Incoming call from ${currentCaller}`, true);
+                        } catch (e) {
+                            addMessage('📞 Incoming call (error decrypting caller name)', true);
+                        }
+                    } else {
+                        // Already in call, send busy signal
+                        ws.send(JSON.stringify({
+                            type: "call_reject",
+                            reason: "busy",
+                            timestamp: Date.now()
+                        }));
+                    }
+                } else if (msg.type === "call_answer") {
+                    // Handle call answer
+                    if (isInCall && isCallInitiator) {
+                        try {
+                            const answererNick = msg.nickname ? await decryptMeta(msg.nickname, msg.nickiv) : 'Unknown';
+                            document.getElementById('callControls').style.display = 'block';
+                            startCallTimer();
+                            addMessage(`📞 ${answererNick} answered the call`, true);
+                        } catch (e) {
+                            // Silent error handling
+                        }
+                    }
+                } else if (msg.type === "call_reject") {
+                    // Handle call rejection
+                    if (isInCall && isCallInitiator) {
+                        const reason = msg.reason === "busy" ? "User is busy" : "Call declined";
+                        addMessage(`📞 ${reason}`, true);
+                        resetCallState();
+                    }
+                } else if (msg.type === "call_end") {
+                    // Handle call end
+                    if (isInCall) {
+                        addMessage('📞 Call ended by other party', true);
+                        resetCallState();
+                    }
+                } else if (msg.type === "audio_chunk") {
+                    // Handle incoming audio chunk
+                    if (isInCall && msg.data && msg.iv) {
+                        decryptAndPlayAudio(msg.data, msg.iv);
+                    }
+                }
+            };
+
+            ws.onclose = (event) => {
+                isConnecting = false;
+
+
+                connectionLost = true;
+
+                updateConnectionStatus('Disconnected', false);
+                readyForChat = false;
+
+                // Show reconnect button
+                document.getElementById('reconnectButton').style.display = 'block';
+
+                // Attempt automatic reconnection
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    scheduleReconnect();
+                    showMobileNotification('🔄 Reconnecting...', 'warning');
+                } else {
+                    updateConnectionStatus('Connection failed - Click reconnect button', false);
+                    addMessage('❌ Connection lost. Click the reconnect button to rejoin.', true);
+                    showMobileNotification('❌ Connection failed. Tap reconnect button.', 'error', 5000);
+                }
+            };
+
+            ws.onerror = (error) => {
+                isConnecting = false;
+
+
+
+                // Show user-friendly error message
+                updateConnectionStatus('Connection failed. Check your internet connection.', false);
+            };
+        }
+
+        // Reconnection helper functions
+        function updateConnectionStatus(status, isReady) {
+            const statusElement = document.getElementById('chatStatus');
+            statusElement.textContent = status;
+
+            if (isReady) {
+                statusElement.style.color = 'var(--tg-accent)';
+                statusElement.style.fontWeight = '500';
+                // Add visual indicator for mobile
+                if (window.innerWidth <= 768) {
+                    statusElement.style.textShadow = '0 0 8px var(--tg-accent)';
+                }
+            } else {
+                statusElement.style.color = 'var(--tg-text-secondary)';
+                statusElement.style.fontWeight = 'normal';
+                statusElement.style.textShadow = 'none';
+            }
+
+            // Add mobile-specific visual feedback
+            if (window.innerWidth <= 768) {
+                statusElement.style.transition = 'all 0.3s ease';
+
+                // Briefly highlight status changes on mobile
+                statusElement.style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                    statusElement.style.transform = 'scale(1)';
+                }, 200);
+            }
+        }
+
+        function scheduleReconnect() {
+            reconnectAttempts++;
+            const delay = Math.min(reconnectDelay * Math.pow(2, reconnectAttempts - 1), 30000); // Max 30 seconds
+
+            updateConnectionStatus(`Reconnecting in ${Math.ceil(delay/1000)}s... (${reconnectAttempts}/${maxReconnectAttempts})`, false);
+
+            setTimeout(() => {
+                if (connectionLost && reconnectAttempts <= maxReconnectAttempts) {
+                    connectWS();
+                }
+            }, delay);
+        }
+
+        async function manualReconnect() {
+            const reconnectBtn = document.getElementById('reconnectButton');
+            reconnectBtn.classList.add('connecting');
+
+            // Reset reconnection state
+            reconnectAttempts = 0;
+            connectionLost = false;
+
+            // Close existing connection if any
+            if (ws && ws.readyState !== WebSocket.CLOSED) {
+                ws.close();
+            }
+
+            // Clear connected peers
+            connectedPeers.clear();
+            receivedPeerPubkey = false;
+            readyForChat = false;
+
+            // Re-derive group chat key if we have session data
+            if (sessionData && sessionData.room) {
+                try {
+                    const combinedSecret = sessionData.room + ':' + document.getElementById('sessionpw').value;
+                    groupChatKey = await deriveGroupChatKey(combinedSecret);
+                } catch (error) {
+                    // Silent error handling
+                }
+            }
+
+            // Attempt to reconnect
+            setTimeout(() => {
+                connectWS();
+                reconnectBtn.classList.remove('connecting');
+            }, 500);
+        }
+
+        // Save session data for reconnection
+        function saveSessionData() {
+            sessionData = {
+                room: room,
+                nickname: nickname,
+                hashedRoom: hashedRoom,
+                // Note: groupChatKey will be re-derived from room secret on reconnection
+            };
+        }
+
+        // Restore session data after reconnection
+        function restoreSessionData() {
+            if (sessionData) {
+                room = sessionData.room;
+                nickname = sessionData.nickname;
+                hashedRoom = sessionData.hashedRoom;
+
+                // Update UI
+                document.getElementById('chatTitle').textContent = `Room: ${room.substring(0, 8)}...`;
+                document.getElementById('chatAvatar').textContent = nickname.charAt(0).toUpperCase();
+            }
+        }
+
+        // Back to join form function
+        function backToJoinForm() {
+            // Close WebSocket connection
+            if (ws && ws.readyState !== WebSocket.CLOSED) {
+                ws.close();
+            }
+
+            // Clear all state
+            connectedPeers.clear();
+            receivedPeerPubkey = false;
+            readyForChat = false;
+            connectionLost = false;
+            reconnectAttempts = 0;
+            sessionData = null;
+
+            // Clear sensitive data
+            myKeyPair = null;
+            sharedSecret = null;
+            peerPublicKey = null;
+            metaKey = null;
+
+            // Clear chat messages
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer) {
+                messagesContainer.innerHTML = '';
+            }
+
+            // Show join form, hide chat
+            document.getElementById('sidebar').classList.remove('hidden');
+            document.getElementById('chatContainer').classList.add('hidden');
+
+            // Hide buttons
+            document.getElementById('reconnectButton').style.display = 'none';
+            document.getElementById('backToJoinButton').style.display = 'none';
+
+            // Focus on room input
+            document.getElementById('room').focus();
+        }
+
+        // Mobile-specific notification system
+        function showMobileNotification(message, type = 'info', duration = 3000) {
+            if (window.innerWidth > 768) return; // Only show on mobile
+
+            // Remove existing notification
+            const existing = document.querySelector('.mobile-notification');
+            if (existing) existing.remove();
+
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `mobile-notification mobile-notification-${type}`;
+            notification.textContent = message;
+
+            // Style the notification
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: var(--tg-accent);
+                color: white;
+                padding: 12px 20px;
+                border-radius: 20px;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                animation: slideInFromTop 0.3s ease-out;
+                max-width: 90%;
+                text-align: center;
+            `;
+
+            // Different colors for different types
+            if (type === 'error') {
+                notification.style.background = '#ff4757';
+            } else if (type === 'success') {
+                notification.style.background = '#2ed573';
+            } else if (type === 'warning') {
+                notification.style.background = '#ffa502';
+            }
+
+            document.body.appendChild(notification);
+
+            // Auto-remove after duration
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.animation = 'slideOutToTop 0.3s ease-in';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, duration);
+        }
+
+        // Add CSS for mobile notifications
+        if (!document.querySelector('#mobile-notification-styles')) {
+            const style = document.createElement('style');
+            style.id = 'mobile-notification-styles';
+            style.textContent = `
+                @keyframes slideInFromTop {
+                    from {
+                        opacity: 0;
+                        transform: translateX(-50%) translateY(-100%);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(-50%) translateY(0);
+                    }
+                }
+
+                @keyframes slideOutToTop {
+                    from {
+                        opacity: 1;
+                        transform: translateX(-50%) translateY(0);
+                    }
+                    to {
+                        opacity: 0;
+                        transform: translateX(-50%) translateY(-100%);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Add CSS for mobile menu animation
+        if (!document.querySelector('#mobile-menu-styles')) {
+            const style = document.createElement('style');
+            style.id = 'mobile-menu-styles';
+            style.textContent = `
+                @keyframes slideUpMenu {
+                    from {
+                        opacity: 0;
+                        transform: translateY(100%);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // ===== FILE SHARING FUNCTIONS =====
+
+        // File transfer state
+        let activeFileTransfer = null;
+
+        // Select file function
+        function selectFile() {
+            const fileInput = document.getElementById('fileInput');
+
+            // For mobile, show options
+            if (window.innerWidth <= 768) {
+                showMobileFileOptions();
+            } else {
+                fileInput.click();
+            }
+        }
+
+        // Show mobile file options
+        function showMobileFileOptions() {
+            const options = [
+                { text: '📷 Take Photo', action: () => captureFromCamera() },
+                { text: '🖼️ Choose from Gallery', action: () => chooseFromGallery() },
+                { text: '🎥 Record Video', action: () => captureVideo() },
+                { text: '❌ Cancel', action: () => {} }
+            ];
+
+            showMobileMenu(options);
+        }
+
+        // Show mobile menu
+        function showMobileMenu(options) {
+            // Remove existing menu
+            const existingMenu = document.querySelector('.mobile-menu');
+            if (existingMenu) existingMenu.remove();
+
+            // Create menu
+            const menu = document.createElement('div');
+            menu.className = 'mobile-menu';
+            menu.style.cssText = `
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: var(--tg-header);
+                border-top: 1px solid var(--tg-border);
+                z-index: 1000;
+                padding: 20px;
+                animation: slideUpMenu 0.3s ease-out;
+            `;
+
+            options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option.text;
+                button.style.cssText = `
+                    width: 100%;
+                    padding: 16px;
+                    margin: 8px 0;
+                    background: var(--tg-input-bg);
+                    border: 1px solid var(--tg-border);
+                    border-radius: 12px;
+                    color: var(--tg-text);
+                    font-size: 16px;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                `;
+
+                button.onclick = () => {
+                    menu.remove();
+                    option.action();
+                };
+
+                menu.appendChild(button);
+            });
+
+            document.body.appendChild(menu);
+
+            // Auto-remove after 10 seconds
+            setTimeout(() => {
+                if (menu.parentNode) menu.remove();
+            }, 10000);
+        }
+
+        // Capture from camera
+        function captureFromCamera() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'camera';
+            input.onchange = handleFileSelect;
+            input.click();
+        }
+
+        // Choose from gallery
+        function chooseFromGallery() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*,video/*';
+            input.onchange = handleFileSelect;
+            input.click();
+        }
+
+        // Capture video
+        function captureVideo() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'video/*';
+            input.capture = 'camcorder';
+            input.onchange = handleFileSelect;
+            input.click();
+        }
+
+        // Handle file selection
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                sendFile(file);
+            }
+        }
+
+        async function encryptMessage(plaintext) {
+            const enc = new TextEncoder();
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+
+            // Use group chat key for multi-user encryption
+            const encryptionKey = groupChatKey || sharedSecret;
+            if (!encryptionKey) {
+                throw new Error('No encryption key available');
+            }
+
+            const ciphertext = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv },
+                encryptionKey,
+                enc.encode(plaintext)
+            );
+            return { data: btoa(String.fromCharCode(...new Uint8Array(ciphertext))), iv: btoa(String.fromCharCode(...iv)) };
+        }
+
+        // Send file function
+        async function sendFile(file) {
+            if (!ws || ws.readyState !== 1) {
+                alert('Not connected to server. Please reconnect.');
+                return;
+            }
+
+            // Check file size (10MB limit for real-time sharing)
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.size > maxSize) {
+                alert('File too large. Maximum size is 10MB for real-time sharing.');
+                return;
+            }
+
+            // Check if we have encryption key
+            if (!groupChatKey && !sharedSecret) {
+                alert('Encryption not ready. Please wait for connection to establish.');
+                return;
+            }
+
+            try {
+                // Show upload progress
+                showFileProgress(file.name, 0, 'Preparing...');
+
+                // Read file as ArrayBuffer
+                const fileData = await file.arrayBuffer();
+
+                // Encrypt file
+                showFileProgress(file.name, 10, 'Encrypting...');
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                const encryptionKey = groupChatKey || sharedSecret;
+
+                const encryptedData = await crypto.subtle.encrypt(
+                    { name: 'AES-GCM', iv },
+                    encryptionKey,
+                    fileData
+                );
+
+                // Calculate total chunks first
+                const CHUNK_SIZE = 32 * 1024; // 32KB chunks
+                const totalChunks = Math.ceil(encryptedData.byteLength / CHUNK_SIZE);
+
+                // Send file metadata
+                const encNick = await encryptMeta(nickname);
+                await ws.send(JSON.stringify({
+                    type: "file_start",
+                    nickname: encNick.data,
+                    nickiv: encNick.iv,
+                    filename: file.name,
+                    filetype: file.type,
+                    filesize: file.size,
+                    totalChunks: totalChunks,
+                    iv: btoa(String.fromCharCode(...iv))
+                }));
+
+                // Send file in chunks
+                for (let i = 0; i < totalChunks; i++) {
+                    const start = i * CHUNK_SIZE;
+                    const end = Math.min(start + CHUNK_SIZE, encryptedData.byteLength);
+                    const chunk = encryptedData.slice(start, end);
+
+                    await ws.send(JSON.stringify({
+                        type: "file_chunk",
+                        nickname: encNick.data,
+                        nickiv: encNick.iv,
+                        chunkIndex: i,
+                        totalChunks: totalChunks,
+                        data: btoa(String.fromCharCode(...new Uint8Array(chunk)))
+                    }));
+
+                    // Update progress
+                    const progress = Math.round(((i + 1) / totalChunks) * 90) + 10; // 10-100%
+                    showFileProgress(file.name, progress, 'Uploading...');
+
+                    // Small delay to prevent overwhelming
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+
+                // Send completion
+                await ws.send(JSON.stringify({
+                    type: "file_complete",
+                    nickname: encNick.data,
+                    nickiv: encNick.iv
+                }));
+
+                // Show completion
+                showFileProgress(file.name, 100, 'Sent!');
+                setTimeout(() => hideFileProgress(), 2000);
+
+                // Add to chat
+                addMessage(`📎 You sent ${file.name}`, true);
+
+            } catch (error) {
+                hideFileProgress();
+                alert('Failed to send file. Please try again.');
+            }
+        }
+
+        async function decryptMessage(b64cipher, b64iv) {
+            const ciphertext = Uint8Array.from(atob(b64cipher), c => c.charCodeAt(0));
+            const iv = Uint8Array.from(atob(b64iv), c => c.charCodeAt(0));
+
+            // Use group chat key for multi-user decryption
+            const decryptionKey = groupChatKey || sharedSecret;
+            if (!decryptionKey) {
+                throw new Error('No decryption key available');
+            }
+
+            const decrypted = await window.crypto.subtle.decrypt(
+                { name: "AES-GCM", iv },
+                decryptionKey,
+                ciphertext
+            );
+            return new TextDecoder().decode(decrypted);
+        }
+        async function sendMessage() {
+            if (!ws || ws.readyState !== 1) {
+                alert('Not connected to server. Please reconnect.');
+                return;
+            }
+
+            // Check if we have encryption key available
+            if (!groupChatKey && !sharedSecret) {
+                alert('Encryption not ready. Please wait for connection to establish.');
+                return;
+            }
+
+            const input = document.getElementById('messageInput');
+            const msg = input.value.trim();
+            if (msg) {
+                try {
+                    const encNick = await encryptMeta(nickname);
+
+                    // Use group chat key for multi-user encryption
+                    const encrypted = await encryptMessage(msg);
+                    ws.send(JSON.stringify({
+                        type: "msg",
+                        nickname: encNick.data,
+                        nickiv: encNick.iv,
+                        data: encrypted.data,
+                        iv: encrypted.iv
+                    }));
+
+                    addMessage("Me: " + msg, true);
+
+                    // Clear input and reset height
+                    input.value = '';
+                    input.style.height = 'auto';
+                    input.style.height = '20px';
+
+                    // Scroll to bottom after sending
+                    setTimeout(() => {
+                        const messagesContainer = document.getElementById('messagesContainer');
+                        if (messagesContainer) {
+                            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                        }
+                    }, 50);
+                } catch (error) {
+                    alert('Failed to encrypt message. Please try again.');
+                }
+            }
+        }
+        function addMessage(msg, isOutgoing = false) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+
+            if (msg.includes('joined the chat') || msg.includes('left the chat') || msg.startsWith('❌') || msg.startsWith('📦')) {
+                // System message
+                messageDiv.className = 'message system';
+                messageDiv.innerHTML = `<div class="message-bubble">${msg}</div>`;
+            } else {
+                // Regular message
+                const isMe = msg.startsWith('Me:');
+                messageDiv.className = `message ${isMe ? 'outgoing' : 'incoming'}`;
+
+                const content = isMe ? msg.substring(4) : msg; // Remove "Me: " prefix
+                const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+                messageDiv.innerHTML = `
+                    <div class="message-bubble">
+                        ${content}
+                        <div class="message-time">${time}</div>
+                    </div>
+                `;
+            }
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        // Track navigation type to distinguish refresh from tab close
+        let isRefreshing = false;
+
+        // Detect refresh using performance navigation API
+        window.addEventListener('beforeunload', () => {
+            // Store a flag in sessionStorage to detect refresh
+            sessionStorage.setItem('isRefreshing', 'true');
+        });
+
+        // Check if this was a refresh on page load
+        window.addEventListener('load', () => {
+            if (sessionStorage.getItem('isRefreshing') === 'true') {
+                isRefreshing = true;
+                sessionStorage.removeItem('isRefreshing');
+            }
+        });
+
+        window.onbeforeunload = () => {
+            // Always close connection and wipe data for security
+            // The connection will be re-established on refresh due to the page reload
+            if (ws) ws.close();
+
+            // Wipe all sensitive data
+            myKeyPair = null;
+            sharedSecret = null;
+            peerPublicKey = null;
+            sentMyPubkey = false;
+            metaKey = null;
+
+            // Wipe ratchet state for forward secrecy
+            ratchetState = {
+                DHs: null, DHr: null, RK: null,
+                CKs: null, Ns: 0, CKr: null, Nr: 0,
+                MKSKIPPED: new Map(),
+                initialized: false, isAlice: false
+            };
+            messageBuffer.clear();
+        };
+        // Blur chat when window/tab loses focus
+        const chatContainer = document.getElementById('chatContainer');
+        window.addEventListener('blur', () => {
+            if (!chatContainer.classList.contains('hidden')) chatContainer.classList.add('blurred');
+        });
+        window.addEventListener('focus', () => {
+            chatContainer.classList.remove('blurred');
+        });
+
+        // File progress functions
+        function showFileProgress(filename, progress, status) {
+            // Remove existing progress
+            hideFileProgress();
+
+            // Create progress element
+            const progressDiv = document.createElement('div');
+            progressDiv.id = 'fileProgress';
+            progressDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: var(--tg-header);
+                border: 1px solid var(--tg-border);
+                border-radius: 12px;
+                padding: 16px 20px;
+                z-index: 1000;
+                min-width: 300px;
+                max-width: 90%;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            `;
+
+            progressDiv.innerHTML = `
+                <div style="font-size: 14px; font-weight: 500; margin-bottom: 8px; color: var(--tg-text);">
+                    📎 ${filename}
+                </div>
+                <div style="font-size: 12px; color: var(--tg-text-secondary); margin-bottom: 8px;">
+                    ${status}
+                </div>
+                <div style="background: var(--tg-border); border-radius: 4px; height: 6px; overflow: hidden;">
+                    <div style="background: var(--tg-accent); height: 100%; width: ${progress}%; transition: width 0.3s ease;"></div>
+                </div>
+                <div style="font-size: 11px; color: var(--tg-text-secondary); margin-top: 4px; text-align: right;">
+                    ${progress}%
+                </div>
+            `;
+
+            document.body.appendChild(progressDiv);
+        }
+
+        function hideFileProgress() {
+            const existing = document.getElementById('fileProgress');
+            if (existing) existing.remove();
+        }
+
+        // File receiving functions
+        async function handleFileMessage(msg) {
+            try {
+                if (msg.type === "file_start") {
+                    let senderNick = 'Unknown';
+                    try {
+                        senderNick = msg.nickname ? await decryptMeta(msg.nickname, msg.nickiv) : 'Unknown';
+                    } catch (e) {
+                        senderNick = 'Secured User';
+                    }
+
+                    activeFileTransfer = {
+                        filename: msg.filename,
+                        filetype: msg.filetype,
+                        filesize: msg.filesize,
+                        iv: msg.iv,
+                        chunks: new Array(msg.totalChunks || 1000), // Pre-allocate array
+                        receivedChunks: 0,
+                        totalChunks: msg.totalChunks || 0,
+                        sender: senderNick
+                    };
+
+
+                } else if (msg.type === "file_chunk" && activeFileTransfer) {
+                    // Store chunk in correct position
+                    if (msg.chunkIndex >= 0 && msg.data) {
+                        activeFileTransfer.chunks[msg.chunkIndex] = msg.data;
+                        activeFileTransfer.receivedChunks++;
+
+                        // Update total chunks if not set
+                        if (!activeFileTransfer.totalChunks && msg.totalChunks) {
+                            activeFileTransfer.totalChunks = msg.totalChunks;
+                        }
+
+                        // Update progress
+                        const progress = Math.round((activeFileTransfer.receivedChunks / msg.totalChunks) * 100);
+                        showFileProgress(activeFileTransfer.filename, progress, 'Receiving...');
+                    }
+
+                } else if (msg.type === "file_complete" && activeFileTransfer) {
+                    // Assemble and display file
+                    await assembleAndDisplayFile(activeFileTransfer);
+                    activeFileTransfer = null;
+                    hideFileProgress();
+                }
+            } catch (error) {
+                addMessage(`❌ Error handling file message: ${error.message}`, false);
+                hideFileProgress();
+                activeFileTransfer = null;
+            }
+        }
+
+        async function assembleAndDisplayFile(transfer) {
+            try {
+                // Check if we have all chunks
+                const expectedChunks = transfer.totalChunks;
+                const receivedChunks = transfer.receivedChunks;
+
+                if (receivedChunks !== expectedChunks) {
+                    addMessage(`❌ Incomplete file: received ${receivedChunks}/${expectedChunks} chunks`, false);
+                    return;
+                }
+
+                // Combine chunks properly - convert each chunk from base64 to binary first
+                const chunkArrays = [];
+                let totalLength = 0;
+
+                for (let i = 0; i < expectedChunks; i++) {
+                    if (transfer.chunks[i] === undefined) {
+                        addMessage(`❌ Missing chunk ${i} of ${transfer.filename}`, false);
+                        return;
+                    }
+
+                    // Convert each chunk from base64 to Uint8Array
+                    const chunkBytes = Uint8Array.from(atob(transfer.chunks[i]), c => c.charCodeAt(0));
+                    chunkArrays.push(chunkBytes);
+                    totalLength += chunkBytes.length;
+                }
+
+                // Combine all chunks into one Uint8Array
+                const encryptedData = new Uint8Array(totalLength);
+                let offset = 0;
+                for (const chunk of chunkArrays) {
+                    encryptedData.set(chunk, offset);
+                    offset += chunk.length;
+                }
+                const iv = Uint8Array.from(atob(transfer.iv), c => c.charCodeAt(0));
+
+                // Decrypt
+                const decryptionKey = groupChatKey || sharedSecret;
+                if (!decryptionKey) {
+                    addMessage(`❌ No decryption key available for ${transfer.filename}`, false);
+                    return;
+                }
+
+                const decryptedData = await crypto.subtle.decrypt(
+                    { name: 'AES-GCM', iv },
+                    decryptionKey,
+                    encryptedData
+                );
+
+                // Create blob and display
+                const blob = new Blob([decryptedData], { type: transfer.filetype });
+                const url = URL.createObjectURL(blob);
+
+                if (transfer.filetype.startsWith('image/')) {
+                    addMessage(`${transfer.sender}: <br><img src="${url}" class="chat-image" style="max-width: 300px; max-height: 200px; border-radius: 8px; cursor: pointer;" onclick="openImageFullscreen('${url}', '${transfer.filename}')">`, false);
+                } else if (transfer.filetype.startsWith('video/')) {
+                    addMessage(`${transfer.sender}: <br><video controls class="chat-video" style="max-width: 400px; max-height: 300px; border-radius: 8px;"><source src="${url}" type="${transfer.filetype}"></video>`, false);
+                } else {
+                    addMessage(`${transfer.sender}: <br><a href="${url}" download="${transfer.filename}" style="color: var(--tg-accent); text-decoration: none;">📎 ${transfer.filename}</a>`, false);
+                }
+
+
+
+            } catch (error) {
+                addMessage(`❌ Failed to decrypt ${transfer.filename}: ${error.message}`, false);
+            }
+        }
+
+        // Open image in fullscreen
+        function openImageFullscreen(url, filename) {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.9);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+            `;
+
+            const img = document.createElement('img');
+            img.src = url;
+            img.style.cssText = `
+                max-width: 90%;
+                max-height: 90%;
+                object-fit: contain;
+            `;
+
+            overlay.appendChild(img);
+            overlay.onclick = () => overlay.remove();
+            document.body.appendChild(overlay);
+        }
+
+        // Clear chat function - clears for everyone in the room
+        async function clearChat() {
+            // Show confirmation dialog
+            if (confirm('🗑️ Clear Chat History for Everyone?\n\nThis will permanently delete all messages for ALL users in this room.\n\nThis action cannot be undone.')) {
+                try {
+                    // Send clear chat message to all users
+                    if (ws && ws.readyState === 1) {
+                        const encNick = await encryptMeta(nickname);
+                        await ws.send(JSON.stringify({
+                            type: "clear_chat",
+                            nickname: encNick.data,
+                            nickiv: encNick.iv
+                        }));
+                    }
+
+                    // Clear local chat immediately
+                    clearLocalChat();
+
+                } catch (error) {
+                    alert('Failed to clear chat. Please try again.');
+                }
+            }
+        }
+
+        // Clear local chat messages
+        function clearLocalChat() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer) {
+                messagesContainer.innerHTML = '';
+            }
+
+            // Scroll to bottom
+            setTimeout(() => {
+                if (messagesContainer) {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+            }, 50);
+        }
+
+        // Small device detection and optimization
+        function optimizeForSmallDevices() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            // Add classes for different device sizes
+            document.body.classList.remove('very-small', 'small-device', 'landscape-small');
+
+            if (width <= 320) {
+                document.body.classList.add('very-small');
+            } else if (width <= 375) {
+                document.body.classList.add('small-device');
+            }
+
+            // Handle landscape on small devices
+            if (width <= 768 && width > height) {
+                document.body.classList.add('landscape-small');
+            }
+
+            // Optimize performance for small devices
+            if (width <= 375) {
+                // Reduce unnecessary reflows
+                const style = document.createElement('style');
+                style.textContent = `
+                    .very-small .message-bubble,
+                    .small-device .message-bubble {
+                        contain: layout style paint;
+                    }
+
+                    .very-small .messages-container,
+                    .small-device .messages-container {
+                        contain: layout;
+                        transform: translateZ(0);
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // Mobile virtual keyboard detection and handling
+        let isKeyboardOpen = false;
+        let initialViewportHeight = window.innerHeight;
+
+        function detectMobileKeyboard() {
+            const currentHeight = window.innerHeight;
+            const heightDifference = initialViewportHeight - currentHeight;
+            const threshold = 150; // Minimum height change to consider keyboard open
+
+            if (heightDifference > threshold && !isKeyboardOpen) {
+                // Keyboard opened
+                isKeyboardOpen = true;
+                document.body.classList.add('keyboard-open');
+                document.querySelector('.app-container').classList.add('keyboard-open');
+
+                // Scroll to bottom to keep input visible
+                setTimeout(() => {
+                    const messagesContainer = document.getElementById('messagesContainer');
+                    if (messagesContainer) {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }
+                }, 100);
+            } else if (heightDifference <= threshold && isKeyboardOpen) {
+                // Keyboard closed
+                isKeyboardOpen = false;
+                document.body.classList.remove('keyboard-open');
+                document.querySelector('.app-container').classList.remove('keyboard-open');
+            }
+        }
+
+        // Listen for viewport changes (mobile keyboard)
+        window.addEventListener('resize', () => {
+            detectMobileKeyboard();
+            optimizeForSmallDevices();
+        });
+
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                initialViewportHeight = window.innerHeight;
+                detectMobileKeyboard();
+                optimizeForSmallDevices();
+            }, 500);
+        });
+
+        // Add Enter key support and auto-resize for textarea
+        document.addEventListener('DOMContentLoaded', () => {
+            const messageInput = document.getElementById('messageInput');
+            const nicknameInput = document.getElementById('nickname');
+            const sessionPwInput = document.getElementById('sessionpw');
+
+            // Set initial viewport height
+            initialViewportHeight = window.innerHeight;
+
+            // Initialize small device optimizations
+            optimizeForSmallDevices();
+
+            // Small device optimizations
+            if (window.innerWidth <= 375) {
+                // Reduce animation complexity on small devices
+                document.documentElement.style.setProperty('--animation-duration', '0.2s');
+
+                // Optimize scrolling performance
+                const messagesContainer = document.getElementById('messagesContainer');
+                if (messagesContainer) {
+                    messagesContainer.style.willChange = 'scroll-position';
+                }
+
+                // Reduce visual effects on very small screens
+                if (window.innerWidth <= 320) {
+                    document.documentElement.style.setProperty('--box-shadow', 'none');
+                    document.documentElement.style.setProperty('--border-radius', '8px');
+                }
+            }
+
+            // Auto-resize textarea
+            function autoResize() {
+                messageInput.style.height = 'auto';
+                const newHeight = Math.min(messageInput.scrollHeight, 120);
+                messageInput.style.height = newHeight + 'px';
+
+                // Scroll to bottom when textarea expands
+                if (isKeyboardOpen) {
+                    setTimeout(() => {
+                        const messagesContainer = document.getElementById('messagesContainer');
+                        if (messagesContainer) {
+                            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                        }
+                    }, 50);
+                }
+            }
+
+            // Send message on Enter key (Shift+Enter for new line)
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Auto-resize on input
+            messageInput.addEventListener('input', autoResize);
+
+            // Mobile-specific input handling
+            messageInput.addEventListener('focus', () => {
+                // Delay to allow keyboard to open
+                setTimeout(() => {
+                    detectMobileKeyboard();
+                    // Scroll input into view on mobile
+                    if (window.innerWidth <= 768) {
+                        messageInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }, 300);
+            });
+
+            messageInput.addEventListener('blur', () => {
+                setTimeout(detectMobileKeyboard, 300);
+            });
+
+            // Join chat on Enter key from form fields
+            [nicknameInput, sessionPwInput].forEach(input => {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        joinChat();
+                    }
+                });
+            });
+
+            // Enhanced mobile touch handling
+            let lastTouchEnd = 0;
+            let touchStartY = 0;
+            let touchStartTime = 0;
+
+            // Prevent zoom on double-tap for mobile
+            document.addEventListener('touchend', (event) => {
+                const now = (new Date()).getTime();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+
+            // Improve scrolling behavior on mobile
+            document.addEventListener('touchstart', (event) => {
+                touchStartY = event.touches[0].clientY;
+                touchStartTime = Date.now();
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (event) => {
+                // Allow natural scrolling in messages container
+                const messagesContainer = document.getElementById('messagesContainer');
+                if (messagesContainer && messagesContainer.contains(event.target)) {
+                    return; // Let it scroll naturally
+                }
+
+                // Prevent overscroll bounce on iOS for other elements
+                if (event.target === document.body || event.target === document.documentElement) {
+                    event.preventDefault();
+                }
+            }, { passive: false });
+
+            // Add haptic feedback for buttons on supported devices
+            function addHapticFeedback(element) {
+                if ('vibrate' in navigator) {
+                    element.addEventListener('touchstart', () => {
+                        navigator.vibrate(10); // Very short vibration
+                    });
+                }
+            }
+
+            // Add haptic feedback to interactive elements
+            const interactiveElements = [
+                document.getElementById('sendButton'),
+                document.getElementById('reconnectButton'),
+                document.getElementById('backToJoinButton'),
+                document.getElementById('themeToggle')
+            ];
+
+            interactiveElements.forEach(element => {
+                if (element) addHapticFeedback(element);
+            });
+
+            // Improve form submission on mobile
+            const formInputs = document.querySelectorAll('.form-input');
+            formInputs.forEach(input => {
+                // Prevent zoom on focus for iOS
+                input.addEventListener('focus', () => {
+                    if (window.innerWidth <= 768) {
+                        input.style.fontSize = '16px';
+                    }
+                });
+
+                // Add visual feedback
+                input.addEventListener('touchstart', () => {
+                    input.style.transform = 'scale(0.98)';
+                    input.style.transition = 'transform 0.1s ease';
+                });
+
+                input.addEventListener('touchend', () => {
+                    input.style.transform = 'scale(1)';
+                });
+            });
+
+            // Enhanced message input handling for mobile
+            messageInput.addEventListener('touchstart', () => {
+                // Ensure input area is visible when touched
+                setTimeout(() => {
+                    messageInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            });
+
+            // Auto-hide mobile keyboard when scrolling messages
+            let isScrolling = false;
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer) {
+                messagesContainer.addEventListener('touchstart', () => {
+                    isScrolling = true;
+                });
+
+                messagesContainer.addEventListener('touchend', () => {
+                    setTimeout(() => {
+                        isScrolling = false;
+                    }, 100);
+                });
+
+                messagesContainer.addEventListener('scroll', () => {
+                    if (isScrolling && document.activeElement === messageInput) {
+                        messageInput.blur(); // Hide keyboard when scrolling
+                    }
+                });
+            }
+        });
+
+        // ===== VOICE CALLING FUNCTIONS =====
+
+        // Get audio quality settings
+        function getAudioQualitySettings() {
+            const qualitySettings = {
+                'standard': { bitrate: 64000, chunkSize: 150 },   // Good quality, low bandwidth
+                'high': { bitrate: 128000, chunkSize: 150 },      // High quality, medium bandwidth
+                'ultra': { bitrate: 256000, chunkSize: 100 }      // Ultra quality, higher bandwidth
+            };
+            return qualitySettings[audioQuality] || qualitySettings['high'];
+        }
+
+        // Set audio quality (can be called from console: setAudioQuality('ultra'))
+        function setAudioQuality(quality) {
+            const validQualities = ['standard', 'high', 'ultra'];
+            if (validQualities.includes(quality)) {
+                audioQuality = quality;
+                const settings = getAudioQualitySettings();
+                addMessage(`🎵 Audio quality set to ${quality} (${settings.bitrate/1000}kbps)`, true);
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        // Toggle voice call
+        async function toggleVoiceCall() {
+            if (isInCall) {
+                endCall();
+            } else {
+                startCall();
+            }
+        }
+
+        // Start a voice call
+        async function startCall() {
+            if (!readyForChat) {
+                alert('Please wait for chat to be ready before starting a call.');
+                return;
+            }
+
+            if (!ws || ws.readyState !== 1) {
+                alert('Not connected to server. Please reconnect.');
+                return;
+            }
+
+            try {
+                // Request microphone permission with high quality audio settings
+                audioStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 48000,  // High sample rate for better quality
+                        channelCount: 1     // Mono for voice calls
+                    }
+                });
+
+                // Update UI
+                isInCall = true;
+                isCallInitiator = true;
+                updateCallButton();
+
+                // Send call offer to all peers
+                const encNick = await encryptMeta(nickname);
+                const callOfferMsg = {
+                    type: "call_offer",
+                    nickname: encNick.data,
+                    nickiv: encNick.iv,
+                    timestamp: Date.now()
+                };
+
+                ws.send(JSON.stringify(callOfferMsg));
+
+                // Start audio capture
+                startAudioCapture();
+
+                // Initialize audio playback for incoming audio
+                initializeMediaSource();
+
+                const qualitySettings = getAudioQualitySettings();
+                addMessage(`📞 Calling... (${qualitySettings.bitrate/1000}kbps quality)`, true);
+
+            } catch (error) {
+                alert('Could not access microphone. Please check permissions.');
+                resetCallState();
+            }
+        }
+
+        // Accept incoming call
+        async function acceptCall() {
+            try {
+                // Request microphone permission with high quality audio settings
+                audioStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 48000,  // High sample rate for better quality
+                        channelCount: 1     // Mono for voice calls
+                    }
+                });
+
+                // Update UI
+                isInCall = true;
+                isCallInitiator = false;
+                document.getElementById('incomingCallModal').style.display = 'none';
+                document.getElementById('callControls').style.display = 'block';
+                updateCallButton();
+
+                // Send call answer
+                const encNick = await encryptMeta(nickname);
+                ws.send(JSON.stringify({
+                    type: "call_answer",
+                    nickname: encNick.data,
+                    nickiv: encNick.iv,
+                    timestamp: Date.now()
+                }));
+
+                // Start audio capture and playback
+                startAudioCapture();
+                startCallTimer();
+
+                // Initialize audio playback (user interaction enables autoplay)
+                initializeMediaSource();
+
+                const qualitySettings = getAudioQualitySettings();
+                addMessage(`📞 Call connected with ${currentCaller} (${qualitySettings.bitrate/1000}kbps quality)`, true);
+
+            } catch (error) {
+                alert('Could not access microphone. Please check permissions.');
+                declineCall();
+            }
+        }
+
+        // Decline incoming call
+        function declineCall() {
+            document.getElementById('incomingCallModal').style.display = 'none';
+
+            // Send call reject
+            ws.send(JSON.stringify({
+                type: "call_reject",
+                timestamp: Date.now()
+            }));
+
+            currentCaller = null;
+            addMessage('📞 Call declined', true);
+        }
+
+        // End current call
+        function endCall() {
+            // Send call end message
+            if (ws && ws.readyState === 1) {
+                ws.send(JSON.stringify({
+                    type: "call_end",
+                    timestamp: Date.now()
+                }));
+            }
+
+            // Clean up call state
+            resetCallState();
+            addMessage('📞 Call ended', true);
+        }
+
+        // Reset call state
+        function resetCallState() {
+            isInCall = false;
+            isCallInitiator = false;
+            currentCaller = null;
+            isMuted = false;
+
+            // Stop media recorder
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+
+            // Stop audio stream
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+                audioStream = null;
+            }
+
+            // Stop call timer
+            if (callDurationInterval) {
+                clearInterval(callDurationInterval);
+                callDurationInterval = null;
+            }
+
+            // Clean up MediaSource
+            if (mediaSource) {
+                try {
+                    if (sourceBuffer && !sourceBuffer.updating) {
+                        mediaSource.removeSourceBuffer(sourceBuffer);
+                    }
+                    if (mediaSource.readyState === 'open') {
+                        mediaSource.endOfStream();
+                    }
+                } catch (error) {
+                    // Silent cleanup error handling
+                }
+                mediaSource = null;
+                sourceBuffer = null;
+                mediaSourceReady = false;
+            }
+
+            // Clean up audio element
+            if (audioPlaybackElement) {
+                audioPlaybackElement.pause();
+                if (audioPlaybackElement.src) {
+                    URL.revokeObjectURL(audioPlaybackElement.src);
+                }
+                audioPlaybackElement = null;
+            }
+
+            // Clear pending chunks
+            pendingAudioChunks = [];
+
+            // Hide UI elements
+            document.getElementById('incomingCallModal').style.display = 'none';
+            document.getElementById('callControls').style.display = 'none';
+
+            // Update call button
+            updateCallButton();
+        }
+
+        // Update call button appearance
+        function updateCallButton() {
+            const callButton = document.getElementById('callButton');
+            const callIcon = callButton.querySelector('svg path');
+
+            if (isInCall) {
+                callButton.classList.add('in-call');
+                callButton.title = 'End call';
+                // Change to hang up icon
+                callIcon.setAttribute('d', 'M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.7l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28-.79-.73-1.68-1.36-2.66-1.85-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z');
+            } else {
+                callButton.classList.remove('in-call', 'calling');
+                callButton.title = 'Start voice call';
+                // Change to phone icon
+                callIcon.setAttribute('d', 'M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z');
+            }
+        }
+
+        // Start audio capture and streaming
+        async function startAudioCapture() {
+            if (!audioStream) return;
+
+            try {
+                // Get current quality settings
+                const qualitySettings = getAudioQualitySettings();
+
+                // Try different audio formats for better compatibility
+                let mimeType = 'audio/webm;codecs=opus';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'audio/webm';
+                }
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'audio/mp4';
+                }
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = ''; // Let browser choose
+                }
+
+                // Create MediaRecorder for audio capture with configurable quality
+                mediaRecorder = new MediaRecorder(audioStream, {
+                    mimeType: mimeType,
+                    audioBitsPerSecond: qualitySettings.bitrate
+                });
+
+                mediaRecorder.ondataavailable = async (event) => {
+                    if (event.data.size > 0 && isInCall) {
+                        try {
+                            // Convert audio blob to ArrayBuffer
+                            const audioData = await event.data.arrayBuffer();
+
+                            // Encrypt audio chunk using existing encryption
+                            const encryptedChunk = await encryptAudioChunk(audioData);
+
+                            // Send encrypted audio chunk via WebSocket
+                            ws.send(JSON.stringify({
+                                type: "audio_chunk",
+                                data: encryptedChunk.data,
+                                iv: encryptedChunk.iv,
+                                timestamp: Date.now()
+                            }));
+                        } catch (error) {
+                            // Silent error handling
+                        }
+                    }
+                };
+
+                mediaRecorder.onerror = (event) => {
+                    // Silent error handling
+                };
+
+                // Start recording with optimized chunk size based on quality
+                mediaRecorder.start(qualitySettings.chunkSize);
+
+            } catch (error) {
+                alert('Failed to start audio capture. Please try again.');
+                endCall();
+            }
+        }
+
+        // Encrypt audio chunk
+        async function encryptAudioChunk(audioData) {
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+
+            // Use group chat key for multi-user encryption or shared secret for P2P
+            const encryptionKey = groupChatKey || sharedSecret;
+            if (!encryptionKey) {
+                throw new Error('No encryption key available for audio');
+            }
+
+            const ciphertext = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv },
+                encryptionKey,
+                audioData
+            );
+
+            return {
+                data: btoa(String.fromCharCode(...new Uint8Array(ciphertext))),
+                iv: btoa(String.fromCharCode(...iv))
+            };
+        }
+
+        // Initialize MediaSource for audio playback
+        function initializeMediaSource() {
+            if (!window.MediaSource) {
+                return false;
+            }
+
+            try {
+                mediaSource = new MediaSource();
+                audioPlaybackElement = document.createElement('audio');
+                audioPlaybackElement.src = URL.createObjectURL(mediaSource);
+                audioPlaybackElement.volume = 1.0;
+
+                mediaSource.addEventListener('sourceopen', () => {
+                    try {
+                        // Try different codecs for compatibility
+                        let mimeType = 'audio/webm; codecs="opus"';
+                        if (!MediaSource.isTypeSupported(mimeType)) {
+                            mimeType = 'audio/webm';
+                        }
+
+                        sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+                        sourceBuffer.mode = 'sequence';
+
+                        sourceBuffer.addEventListener('updateend', () => {
+                            // Process pending chunks when buffer is ready
+                            if (pendingAudioChunks.length > 0 && !sourceBuffer.updating) {
+                                const chunk = pendingAudioChunks.shift();
+                                sourceBuffer.appendBuffer(chunk);
+                            }
+                        });
+
+                        mediaSourceReady = true;
+
+                        // Start playback
+                        audioPlaybackElement.play().catch(e => {
+                            // Audio autoplay prevented, will start on user interaction
+                        });
+
+                    } catch (error) {
+                        mediaSourceReady = false;
+                    }
+                });
+
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        // Decrypt and play audio chunk using MediaSource
+        async function decryptAndPlayAudio(encryptedData, ivData) {
+            try {
+                const ciphertext = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
+                const iv = Uint8Array.from(atob(ivData), c => c.charCodeAt(0));
+
+                // Use group chat key for multi-user decryption or shared secret for P2P
+                const decryptionKey = groupChatKey || sharedSecret;
+                if (!decryptionKey) {
+                    return;
+                }
+
+                const decryptedData = await window.crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv },
+                    decryptionKey,
+                    ciphertext
+                );
+
+                // Initialize MediaSource if not already done
+                if (!mediaSource && !initializeMediaSource()) {
+                    // Fallback to simple audio element approach
+                    playAudioChunkFallback(decryptedData);
+                    return;
+                }
+
+                // Add decrypted audio chunk to MediaSource
+                if (mediaSourceReady && sourceBuffer && !sourceBuffer.updating) {
+                    try {
+                        sourceBuffer.appendBuffer(decryptedData);
+                    } catch (error) {
+                        pendingAudioChunks.push(decryptedData);
+                    }
+                } else {
+                    // Queue chunk for later processing
+                    pendingAudioChunks.push(decryptedData);
+                }
+
+                // Visual indicator that audio is being received
+                const callStatus = document.getElementById('callStatus');
+                if (callStatus) {
+                    callStatus.textContent = '🎵 Audio Streaming';
+                    setTimeout(() => {
+                        if (callStatus.textContent === '🎵 Audio Streaming') {
+                            callStatus.textContent = 'Connected';
+                        }
+                    }, 300);
+                }
+
+            } catch (error) {
+                // Silent error handling for production
+            }
+        }
+
+        // Fallback audio playback for browsers without MediaSource support
+        function playAudioChunkFallback(audioData) {
+            try {
+                const audioBlob = new Blob([audioData], { type: 'audio/webm' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+
+                const audio = new Audio(audioUrl);
+                audio.volume = 0.8;
+
+                audio.onended = () => URL.revokeObjectURL(audioUrl);
+                audio.onerror = () => URL.revokeObjectURL(audioUrl);
+
+                audio.play().catch(() => {
+                    // Silent fail for fallback
+                    URL.revokeObjectURL(audioUrl);
+                });
+
+            } catch (error) {
+                // Silent error handling for production
+            }
+        }
+
+        // Toggle mute
+        function toggleMute() {
+            isMuted = !isMuted;
+            const muteButton = document.getElementById('muteButton');
+            const muteIcon = muteButton.querySelector('svg path');
+
+            if (audioStream) {
+                audioStream.getAudioTracks().forEach(track => {
+                    track.enabled = !isMuted;
+                });
+            }
+
+            if (isMuted) {
+                muteButton.classList.add('muted');
+                muteButton.title = 'Unmute';
+                // Change to muted microphone icon
+                muteIcon.setAttribute('d', 'M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z');
+            } else {
+                muteButton.classList.remove('muted');
+                muteButton.title = 'Mute';
+                // Change to normal microphone icon
+                muteIcon.setAttribute('d', 'M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z');
+            }
+        }
+
+        // Start call timer
+        function startCallTimer() {
+            callStartTime = Date.now();
+            callDurationInterval = setInterval(() => {
+                const duration = Math.floor((Date.now() - callStartTime) / 1000);
+                const minutes = Math.floor(duration / 60).toString().padStart(2, '0');
+                const seconds = (duration % 60).toString().padStart(2, '0');
+                document.getElementById('callDuration').textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+    </script>
+</body>
+</html> 
