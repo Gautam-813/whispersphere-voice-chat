@@ -4372,14 +4372,19 @@
         // Decrypt and play audio chunk using improved buffering
         async function decryptAndPlayAudio(encryptedData, ivData) {
             try {
+                console.log('🔊 decryptAndPlayAudio called');
                 measureConnectionQuality(); // Monitor connection quality
 
                 const ciphertext = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
                 const iv = Uint8Array.from(atob(ivData), c => c.charCodeAt(0));
+                console.log('🔊 Ciphertext size:', ciphertext.length, 'IV size:', iv.length);
 
                 // Use group chat key for multi-user decryption or shared secret for P2P
                 const decryptionKey = groupChatKey || sharedSecret;
+                console.log('🔊 Decryption key available:', !!decryptionKey, 'groupChatKey:', !!groupChatKey, 'sharedSecret:', !!sharedSecret);
+
                 if (!decryptionKey) {
+                    console.error('🔊 No decryption key available!');
                     return;
                 }
 
@@ -4388,12 +4393,14 @@
                     decryptionKey,
                     ciphertext
                 );
+                console.log('🔊 Audio decrypted successfully, size:', decryptedData.byteLength);
 
                 // Add to audio buffer for smooth playback
                 audioBuffer.push({
                     data: decryptedData,
                     timestamp: Date.now()
                 });
+                console.log('🔊 Added to audio buffer, buffer length:', audioBuffer.length);
 
                 // Remove old chunks to prevent excessive buffering
                 if (audioBuffer.length > audioBufferMax) {
@@ -4423,33 +4430,43 @@
                 }
 
             } catch (error) {
-                // Silent error handling for production
+                console.error('🔊 Error in decryptAndPlayAudio:', error);
+                addMessage('❌ Audio playback error: ' + error.message, true);
             }
         }
 
         // Process audio buffer for smooth playback
         async function processAudioBuffer() {
+            console.log('🔊 processAudioBuffer called, audioPlaybackStarted:', audioPlaybackStarted, 'buffer length:', audioBuffer.length);
+
             if (!audioPlaybackStarted || audioBuffer.length === 0) {
+                console.log('🔊 Skipping audio buffer processing');
                 return;
             }
 
             // Maintain target buffer size
             if (audioBuffer.length >= audioBufferTarget) {
                 const chunk = audioBuffer.shift();
+                console.log('🔊 Processing audio chunk, remaining buffer:', audioBuffer.length);
 
                 // Initialize MediaSource if not already done
                 if (!mediaSource && !initializeMediaSource()) {
+                    console.log('🔊 Using fallback audio playback');
                     // Fallback to simple audio element approach
                     playAudioChunkFallback(chunk.data);
                 } else {
+                    console.log('🔊 Using MediaSource playback, ready:', mediaSourceReady, 'sourceBuffer:', !!sourceBuffer, 'updating:', sourceBuffer?.updating);
                     // Add to MediaSource
                     if (mediaSourceReady && sourceBuffer && !sourceBuffer.updating) {
                         try {
+                            console.log('🔊 Appending audio chunk to sourceBuffer');
                             sourceBuffer.appendBuffer(chunk.data);
                         } catch (error) {
+                            console.error('🔊 Error appending to sourceBuffer:', error);
                             pendingAudioChunks.push(chunk.data);
                         }
                     } else {
+                        console.log('🔊 Adding chunk to pending queue');
                         pendingAudioChunks.push(chunk.data);
                     }
                 }
@@ -4462,22 +4479,38 @@
         // Fallback audio playback for browsers without MediaSource support
         function playAudioChunkFallback(audioData) {
             try {
+                console.log('🔊 Fallback playback, audio data size:', audioData.byteLength);
                 const audioBlob = new Blob([audioData], { type: 'audio/webm' });
                 const audioUrl = URL.createObjectURL(audioBlob);
+                console.log('🔊 Created audio blob URL:', audioUrl);
 
                 const audio = new Audio(audioUrl);
                 audio.volume = 0.8;
 
-                audio.onended = () => URL.revokeObjectURL(audioUrl);
-                audio.onerror = () => URL.revokeObjectURL(audioUrl);
+                audio.onended = () => {
+                    console.log('🔊 Fallback audio ended');
+                    URL.revokeObjectURL(audioUrl);
+                };
 
-                audio.play().catch(() => {
-                    // Silent fail for fallback
+                audio.onerror = (e) => {
+                    console.error('🔊 Fallback audio error:', e);
+                    URL.revokeObjectURL(audioUrl);
+                };
+
+                audio.onloadeddata = () => {
+                    console.log('🔊 Fallback audio loaded, duration:', audio.duration);
+                };
+
+                console.log('🔊 Starting fallback audio playback');
+                audio.play().then(() => {
+                    console.log('🔊 Fallback audio play started successfully');
+                }).catch((error) => {
+                    console.error('🔊 Fallback audio play failed:', error);
                     URL.revokeObjectURL(audioUrl);
                 });
 
             } catch (error) {
-                // Silent error handling for production
+                console.error('🔊 Error in fallback audio playback:', error);
             }
         }
 
