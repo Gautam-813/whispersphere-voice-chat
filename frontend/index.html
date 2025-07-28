@@ -1628,6 +1628,11 @@
                     <path d="M20 8h-2.81c-.45-.78-1.07-1.45-1.82-1.96L17 4.41 15.59 3l-2.17 2.17C12.96 5.06 12.49 5 12 5s-.96.06-1.42.17L8.41 3 7 4.41l1.62 1.63C7.88 6.55 7.26 7.22 6.81 8H4v2h2.09c-.05.33-.09.66-.09 1v1H4v2h2v1c0 .34.04.67.09 1H4v2h2.81c1.04 1.79 2.97 3 5.19 3s4.15-1.21 5.19-3H20v-2h-2.09c.05-.33.09-.66.09-1v-1h2v-2h-2v-1c0-.34-.04-.67-.09-1H20V8z"/>
                 </svg>
             </button>
+            <button class="call-control-btn" id="fallbackButton" onclick="forceFallbackMode()" title="Force simple audio mode">
+                <svg viewBox="0 0 24 24">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                </svg>
+            </button>
             <button class="call-control-btn end-call" onclick="endCall()">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.7l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28-.79-.73-1.68-1.36-2.66-1.85-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
@@ -1676,6 +1681,7 @@
         let isPlayingAudio = false;
         let pendingAudioChunks = [];
         let mediaSourceReady = false;
+        let useMediaSourceFallback = false; // Force fallback mode if MediaSource is problematic
 
         // Audio buffering for smooth playback
         let audioBuffer = [];
@@ -4280,6 +4286,25 @@
             addMessage('🔍 Audio debug info logged to console', true);
         }
 
+        // Force fallback audio mode (for testing)
+        function forceFallbackMode() {
+            console.log('🔊 Forcing fallback audio mode');
+            useMediaSourceFallback = true;
+
+            // Clean up MediaSource
+            if (mediaSource) {
+                try {
+                    mediaSource.endOfStream();
+                } catch (e) {}
+                mediaSource = null;
+            }
+            sourceBuffer = null;
+            mediaSourceReady = false;
+            pendingAudioChunks = [];
+
+            addMessage('🔊 Switched to fallback audio mode', true);
+        }
+
         // Encrypt audio chunk
         async function encryptAudioChunk(audioData) {
             const iv = window.crypto.getRandomValues(new Uint8Array(12));
@@ -4449,11 +4474,20 @@
                 const chunk = audioBuffer.shift();
                 console.log('🔊 Processing audio chunk, remaining buffer:', audioBuffer.length);
 
-                // Initialize MediaSource if not already done
-                if (!mediaSource && !initializeMediaSource()) {
-                    console.log('🔊 Using fallback audio playback');
-                    // Fallback to simple audio element approach
-                    playAudioChunkFallback(chunk.data);
+                // Check if we should use fallback mode or try MediaSource
+                if (useMediaSourceFallback || !mediaSource) {
+                    if (useMediaSourceFallback) {
+                        console.log('🔊 Using forced fallback mode');
+                        playAudioChunkFallback(chunk.data);
+                    } else if (!initializeMediaSource()) {
+                        console.log('🔊 MediaSource initialization failed, switching to fallback mode');
+                        useMediaSourceFallback = true;
+                        playAudioChunkFallback(chunk.data);
+                    } else {
+                        // MediaSource was just initialized, add chunk to pending
+                        console.log('🔊 MediaSource just initialized, adding to pending');
+                        pendingAudioChunks.push(chunk.data);
+                    }
                 } else {
                     console.log('🔊 Using MediaSource playback, ready:', mediaSourceReady, 'sourceBuffer:', !!sourceBuffer, 'updating:', sourceBuffer?.updating);
                     // Add to MediaSource
@@ -4462,8 +4496,16 @@
                             console.log('🔊 Appending audio chunk to sourceBuffer');
                             sourceBuffer.appendBuffer(chunk.data);
                         } catch (error) {
-                            console.error('🔊 Error appending to sourceBuffer:', error);
-                            pendingAudioChunks.push(chunk.data);
+                            console.error('🔊 MediaSource failed, switching to fallback permanently:', error);
+                            // MediaSource is broken, switch to fallback permanently
+                            useMediaSourceFallback = true;
+                            mediaSource = null;
+                            sourceBuffer = null;
+                            mediaSourceReady = false;
+                            pendingAudioChunks = [];
+
+                            // Use fallback for this chunk
+                            playAudioChunkFallback(chunk.data);
                         }
                     } else {
                         console.log('🔊 Adding chunk to pending queue');
