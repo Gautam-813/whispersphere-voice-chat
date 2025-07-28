@@ -4518,111 +4518,117 @@
             setTimeout(processAudioBuffer, 20); // Process every 20ms
         }
 
-        // Web Audio API fallback for raw audio data playback
-        let webAudioContext = null;
-        let webAudioQueue = [];
-        let isPlayingQueue = false;
+        // Simple audio element pool for playback
+        let audioElementPool = [];
+        let currentAudioIndex = 0;
+        const MAX_AUDIO_ELEMENTS = 5;
+
+        // Initialize audio element pool
+        function initializeAudioPool() {
+            for (let i = 0; i < MAX_AUDIO_ELEMENTS; i++) {
+                const audio = new Audio();
+                audio.volume = 0.8;
+                audio.preload = 'auto';
+                audioElementPool.push(audio);
+            }
+            console.log('🔊 Audio element pool initialized with', MAX_AUDIO_ELEMENTS, 'elements');
+        }
 
         async function playAudioChunkFallback(audioData) {
             try {
-                console.log('🔊 Web Audio API fallback, audio data size:', audioData.byteLength);
+                console.log('🔊 Direct audio playback, audio data size:', audioData.byteLength);
 
-                // Initialize AudioContext if needed
-                if (!webAudioContext) {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    webAudioContext = new AudioContext();
-                    console.log('🔊 AudioContext created, state:', webAudioContext.state);
+                // Initialize pool if needed
+                if (audioElementPool.length === 0) {
+                    initializeAudioPool();
                 }
 
-                // Resume AudioContext if suspended
-                if (webAudioContext.state === 'suspended') {
-                    await webAudioContext.resume();
-                    console.log('🔊 AudioContext resumed');
-                }
+                // Create a data URL directly from the audio data
+                const base64Data = btoa(String.fromCharCode(...new Uint8Array(audioData)));
+                const dataUrl = `data:audio/webm;base64,${base64Data}`;
 
-                // Try to decode the audio data
+                // Get next audio element from pool
+                const audio = audioElementPool[currentAudioIndex];
+                currentAudioIndex = (currentAudioIndex + 1) % MAX_AUDIO_ELEMENTS;
+
+                // Set up the audio element
+                audio.src = dataUrl;
+
+                // Try to play
                 try {
-                    const audioBuffer = await webAudioContext.decodeAudioData(audioData.slice());
-                    console.log('🔊 Audio decoded successfully, duration:', audioBuffer.duration);
+                    await audio.play();
+                    console.log('🔊 Direct audio playback successful');
+                } catch (playError) {
+                    console.error('🔊 Direct audio playback failed:', playError);
 
-                    // Add to queue for sequential playback
-                    webAudioQueue.push(audioBuffer);
+                    // Try alternative approach with blob URL
+                    try {
+                        const audioBlob = new Blob([audioData], { type: 'audio/webm;codecs=opus' });
+                        const blobUrl = URL.createObjectURL(audioBlob);
 
-                    if (!isPlayingQueue) {
-                        playAudioQueue();
-                    }
+                        audio.src = blobUrl;
+                        await audio.play();
+                        console.log('🔊 Blob URL audio playback successful');
 
-                } catch (decodeError) {
-                    console.error('🔊 Audio decode failed, trying simple blob playback:', decodeError);
+                        // Clean up blob URL after a delay
+                        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
 
-                    // Fallback to simple blob playback with different MIME types
-                    const mimeTypes = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/wav'];
-                    let played = false;
+                    } catch (blobError) {
+                        console.error('🔊 Blob URL audio playback also failed:', blobError);
 
-                    for (const mimeType of mimeTypes) {
-                        try {
-                            const audioBlob = new Blob([audioData], { type: mimeType });
-                            const audioUrl = URL.createObjectURL(audioBlob);
-                            const audio = new Audio(audioUrl);
-
-                            audio.volume = 0.8;
-                            audio.onended = () => URL.revokeObjectURL(audioUrl);
-                            audio.onerror = () => URL.revokeObjectURL(audioUrl);
-
-                            await audio.play();
-                            console.log('🔊 Simple audio playback successful with', mimeType);
-                            played = true;
-                            break;
-
-                        } catch (playError) {
-                            console.log('🔊 Failed with', mimeType, ':', playError.message);
-                        }
-                    }
-
-                    if (!played) {
-                        console.error('🔊 All audio playback methods failed');
+                        // Last resort: try to reconstruct MediaSource
+                        tryMediaSourcePlayback(audioData);
                     }
                 }
 
             } catch (error) {
-                console.error('🔊 Error in Web Audio API fallback:', error);
+                console.error('🔊 Error in direct audio playback:', error);
             }
         }
 
-        // Play audio queue sequentially
-        async function playAudioQueue() {
-            if (isPlayingQueue || webAudioQueue.length === 0) return;
+        // Last resort: try to reconstruct MediaSource playback
+        function tryMediaSourcePlayback(audioData) {
+            try {
+                console.log('🔊 Attempting MediaSource reconstruction');
 
-            isPlayingQueue = true;
-            console.log('🔊 Starting audio queue playback, queue length:', webAudioQueue.length);
-
-            while (webAudioQueue.length > 0) {
-                const audioBuffer = webAudioQueue.shift();
-
-                try {
-                    const source = webAudioContext.createBufferSource();
-                    source.buffer = audioBuffer;
-                    source.connect(webAudioContext.destination);
-
-                    // Play the audio
-                    source.start();
-                    console.log('🔊 Playing audio chunk, duration:', audioBuffer.duration);
-
-                    // Wait for this chunk to finish before playing next
-                    await new Promise(resolve => {
-                        source.onended = resolve;
-                        // Fallback timeout in case onended doesn't fire
-                        setTimeout(resolve, audioBuffer.duration * 1000 + 100);
-                    });
-
-                } catch (playError) {
-                    console.error('🔊 Error playing audio chunk:', playError);
+                if (!window.MediaSource) {
+                    console.error('🔊 MediaSource not supported');
+                    return;
                 }
-            }
 
-            isPlayingQueue = false;
-            console.log('🔊 Audio queue playback finished');
+                const mediaSource = new MediaSource();
+                const audio = new Audio();
+                audio.src = URL.createObjectURL(mediaSource);
+                audio.volume = 0.8;
+
+                mediaSource.addEventListener('sourceopen', () => {
+                    try {
+                        const sourceBuffer = mediaSource.addSourceBuffer('audio/webm;codecs=opus');
+                        sourceBuffer.appendBuffer(audioData);
+
+                        sourceBuffer.addEventListener('updateend', () => {
+                            if (mediaSource.readyState === 'open') {
+                                mediaSource.endOfStream();
+                            }
+                        });
+
+                        audio.play().then(() => {
+                            console.log('🔊 MediaSource reconstruction successful');
+                        }).catch(err => {
+                            console.error('🔊 MediaSource reconstruction play failed:', err);
+                        });
+
+                    } catch (sourceError) {
+                        console.error('🔊 MediaSource reconstruction failed:', sourceError);
+                    }
+                });
+
+            } catch (error) {
+                console.error('🔊 MediaSource reconstruction error:', error);
+            }
         }
+
+
 
         // Toggle mute
         function toggleMute() {
