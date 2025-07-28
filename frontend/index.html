@@ -3811,6 +3811,41 @@
             }
         }
 
+        // Enable fallback audio mode (can be called from console: enableAudioFallback())
+        function enableAudioFallback() {
+            useMediaSourceFallback = true;
+            addMessage('🔊 Audio fallback mode enabled - using Web Audio API', true);
+            console.log('🔊 Fallback mode enabled manually');
+            return true;
+        }
+
+        // Disable fallback audio mode (can be called from console: disableAudioFallback())
+        function disableAudioFallback() {
+            useMediaSourceFallback = false;
+            addMessage('🔊 Audio fallback mode disabled - using MediaSource', true);
+            console.log('🔊 Fallback mode disabled manually');
+            return true;
+        }
+
+        // Get audio debug info (can be called from console: getAudioDebugInfo())
+        function getAudioDebugInfo() {
+            const info = {
+                isInCall,
+                audioPlaybackStarted,
+                useMediaSourceFallback,
+                mediaSourceReady,
+                audioBufferLength: audioBuffer.length,
+                audioBufferTarget,
+                connectionQuality,
+                audioQuality,
+                mediaSourceSupported: !!window.MediaSource,
+                webAudioSupported: !!(window.AudioContext || window.webkitAudioContext),
+                pendingChunks: pendingAudioChunks.length
+            };
+            console.table(info);
+            return info;
+        }
+
         // Toggle voice call
         async function toggleVoiceCall() {
             if (isInCall) {
@@ -4553,47 +4588,65 @@
                 const chunk = audioBuffer.shift();
                 console.log('🔊 Processing audio chunk, remaining buffer:', audioBuffer.length);
 
-                        // Always try MediaSource first, fallback only if it completely fails
-                if (!mediaSource) {
-                    console.log('🔊 Initializing MediaSource for audio playback');
-                    if (!initializeMediaSource()) {
-                        console.log('🔊 MediaSource initialization failed, using simple playback');
-                        playAudioChunkFallback(chunk.data);
-                        return;
-                    }
-                    // MediaSource was just initialized, add chunk to pending
-                    console.log('🔊 MediaSource initialized, adding chunk to pending');
-                    pendingAudioChunks.push(chunk.data);
+                // Check if we should use forced fallback mode
+                if (useMediaSourceFallback) {
+                    console.log('🔊 Using forced fallback mode');
+                    playAudioChunkFallback(chunk.data);
                 } else {
-                    console.log('🔊 Using MediaSource playback, ready:', mediaSourceReady, 'sourceBuffer:', !!sourceBuffer, 'updating:', sourceBuffer?.updating);
-                    // Add to MediaSource
-                    if (mediaSourceReady && sourceBuffer && !sourceBuffer.updating) {
-                        try {
-                            console.log('🔊 Appending audio chunk to sourceBuffer');
-                            sourceBuffer.appendBuffer(chunk.data);
-                        } catch (error) {
-                            console.error('🔊 MediaSource append failed:', error);
-                            // Add to pending chunks instead of failing completely
-                            pendingAudioChunks.push(chunk.data);
-
-                            // If this is a critical error, reinitialize MediaSource
-                            if (error.name === 'InvalidStateError') {
-                                console.log('🔊 Reinitializing MediaSource due to invalid state');
-                                mediaSource = null;
-                                sourceBuffer = null;
-                                mediaSourceReady = false;
-
-                                // Try to reinitialize on next chunk
-                                setTimeout(() => {
-                                    if (pendingAudioChunks.length > 0) {
-                                        initializeMediaSource();
-                                    }
-                                }, 100);
-                            }
+                    // Try MediaSource first, fallback only if it completely fails
+                    if (!mediaSource) {
+                        console.log('🔊 Initializing MediaSource for audio playback');
+                        if (!initializeMediaSource()) {
+                            console.log('🔊 MediaSource initialization failed, enabling fallback mode');
+                            useMediaSourceFallback = true;
+                            addMessage('🔊 Using compatibility audio mode', true);
+                            playAudioChunkFallback(chunk.data);
+                            return;
                         }
-                    } else {
-                        console.log('🔊 Adding chunk to pending queue');
+                        // MediaSource was just initialized, add chunk to pending
+                        console.log('🔊 MediaSource initialized, adding chunk to pending');
                         pendingAudioChunks.push(chunk.data);
+                    } else {
+                        console.log('🔊 Using MediaSource playback, ready:', mediaSourceReady, 'sourceBuffer:', !!sourceBuffer, 'updating:', sourceBuffer?.updating);
+                        // Add to MediaSource
+                        if (mediaSourceReady && sourceBuffer && !sourceBuffer.updating) {
+                            try {
+                                console.log('🔊 Appending audio chunk to sourceBuffer');
+                                sourceBuffer.appendBuffer(chunk.data);
+                            } catch (error) {
+                                console.error('🔊 MediaSource append failed:', error);
+
+                                // If MediaSource keeps failing, switch to fallback mode
+                                if (error.name === 'InvalidStateError' || error.name === 'NotSupportedError') {
+                                    console.log('🔊 Switching to fallback mode due to MediaSource errors');
+                                    useMediaSourceFallback = true;
+                                    addMessage('🔊 Switched to compatibility audio mode', true);
+                                    playAudioChunkFallback(chunk.data);
+                                    return;
+                                }
+
+                                // Add to pending chunks for other errors
+                                pendingAudioChunks.push(chunk.data);
+
+                                // Try to reinitialize MediaSource
+                                if (error.name === 'InvalidStateError') {
+                                    console.log('🔊 Reinitializing MediaSource due to invalid state');
+                                    mediaSource = null;
+                                    sourceBuffer = null;
+                                    mediaSourceReady = false;
+
+                                    // Try to reinitialize on next chunk
+                                    setTimeout(() => {
+                                        if (pendingAudioChunks.length > 0) {
+                                            initializeMediaSource();
+                                        }
+                                    }, 100);
+                                }
+                            }
+                        } else {
+                            console.log('🔊 Adding chunk to pending queue');
+                            pendingAudioChunks.push(chunk.data);
+                        }
                     }
                 }
             }
@@ -4620,53 +4673,119 @@
 
         async function playAudioChunkFallback(audioData) {
             try {
-                console.log('🔊 Direct audio playback, audio data size:', audioData.byteLength);
+                console.log('🔊 Fallback audio playback, audio data size:', audioData.byteLength);
+
+                // Try Web Audio API approach first (best for raw audio data)
+                if (window.AudioContext || window.webkitAudioContext) {
+                    try {
+                        await playAudioWithWebAudioAPI(audioData);
+                        console.log('🔊 Web Audio API playback successful');
+                        return;
+                    } catch (webAudioError) {
+                        console.log('🔊 Web Audio API failed, trying blob approach:', webAudioError);
+                    }
+                }
 
                 // Initialize pool if needed
                 if (audioElementPool.length === 0) {
                     initializeAudioPool();
                 }
 
-                // Create a data URL directly from the audio data
-                const base64Data = btoa(String.fromCharCode(...new Uint8Array(audioData)));
-                const dataUrl = `data:audio/webm;base64,${base64Data}`;
-
                 // Get next audio element from pool
                 const audio = audioElementPool[currentAudioIndex];
                 currentAudioIndex = (currentAudioIndex + 1) % MAX_AUDIO_ELEMENTS;
 
-                // Set up the audio element
-                audio.src = dataUrl;
-
-                // Try to play
+                // Try blob URL approach (for complete WebM data)
                 try {
+                    const audioBlob = new Blob([audioData], { type: 'audio/webm;codecs=opus' });
+                    const blobUrl = URL.createObjectURL(audioBlob);
+
+                    audio.src = blobUrl;
                     await audio.play();
-                    console.log('🔊 Direct audio playback successful');
-                } catch (playError) {
-                    console.error('🔊 Direct audio playback failed:', playError);
+                    console.log('🔊 Blob URL audio playback successful');
 
-                    // Try alternative approach with blob URL
+                    // Clean up blob URL after a delay
+                    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+
+                } catch (blobError) {
+                    console.error('🔊 Blob URL audio playback failed:', blobError);
+
+                    // Try data URL as last resort
                     try {
-                        const audioBlob = new Blob([audioData], { type: 'audio/webm;codecs=opus' });
-                        const blobUrl = URL.createObjectURL(audioBlob);
-
-                        audio.src = blobUrl;
+                        const base64Data = btoa(String.fromCharCode(...new Uint8Array(audioData)));
+                        const dataUrl = `data:audio/webm;base64,${base64Data}`;
+                        audio.src = dataUrl;
                         await audio.play();
-                        console.log('🔊 Blob URL audio playback successful');
-
-                        // Clean up blob URL after a delay
-                        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
-
-                    } catch (blobError) {
-                        console.error('🔊 Blob URL audio playback also failed:', blobError);
-
-                        // Last resort: try to reconstruct MediaSource
+                        console.log('🔊 Data URL audio playback successful');
+                    } catch (dataUrlError) {
+                        console.error('🔊 All fallback methods failed:', dataUrlError);
+                        // Try MediaSource as absolute last resort
                         tryMediaSourcePlayback(audioData);
                     }
                 }
 
             } catch (error) {
-                console.error('🔊 Error in direct audio playback:', error);
+                console.error('🔊 Error in fallback audio playback:', error);
+            }
+        }
+
+        // Web Audio API playback for raw audio data
+        async function playAudioWithWebAudioAPI(audioData) {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            // Resume audio context if suspended (required for autoplay policy)
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+
+            try {
+                // Try to decode the audio data (works if it's a complete WebM file)
+                const audioBuffer = await audioContext.decodeAudioData(audioData.slice());
+
+                // Create buffer source
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioContext.destination);
+
+                // Play the audio
+                source.start(0);
+                console.log('🔊 Web Audio API decoded and playing WebM data');
+
+            } catch (decodeError) {
+                console.log('🔊 Could not decode as WebM, trying raw PCM interpretation');
+
+                // If decoding fails, the data might be raw PCM
+                // Try to interpret as raw 16-bit PCM at 24kHz (matching recording settings)
+                const sampleRate = 24000;
+                const channels = 1;
+                const bytesPerSample = 2; // 16-bit
+                const samples = audioData.byteLength / bytesPerSample;
+
+                if (samples > 0) {
+                    // Create audio buffer
+                    const audioBuffer = audioContext.createBuffer(channels, samples, sampleRate);
+                    const channelData = audioBuffer.getChannelData(0);
+
+                    // Convert raw bytes to float32 samples
+                    const dataView = new DataView(audioData);
+                    for (let i = 0; i < samples; i++) {
+                        // Read 16-bit signed integer and convert to float32 (-1.0 to 1.0)
+                        const sample = dataView.getInt16(i * 2, true) / 32768.0;
+                        channelData[i] = sample;
+                    }
+
+                    // Create buffer source and play
+                    const source = audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(audioContext.destination);
+                    source.start(0);
+
+                    console.log('🔊 Web Audio API playing raw PCM data');
+                } else {
+                    throw new Error('Invalid audio data size');
+                }
             }
         }
 
