@@ -1618,6 +1618,16 @@
                     <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
                 </svg>
             </button>
+            <button class="call-control-btn" id="testMicButton" onclick="testMicrophone()" title="Test microphone">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 1c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2s2-.9 2-2V3c0-1.1-.9-2-2-2zm0 18c4.42 0 8-3.58 8-8h-2c0 3.31-2.69 6-6 6s-6-2.69-6-6H4c0 4.42 3.58 8 8 8zm0-10c-.55 0-1-.45-1-1V3c0-.55.45-1 1-1s1 .45 1 1v5c0 .55-.45 1-1 1z"/>
+                </svg>
+            </button>
+            <button class="call-control-btn" id="debugButton" onclick="debugAudioSystem()" title="Debug audio system">
+                <svg viewBox="0 0 24 24">
+                    <path d="M20 8h-2.81c-.45-.78-1.07-1.45-1.82-1.96L17 4.41 15.59 3l-2.17 2.17C12.96 5.06 12.49 5 12 5s-.96.06-1.42.17L8.41 3 7 4.41l1.62 1.63C7.88 6.55 7.26 7.22 6.81 8H4v2h2.09c-.05.33-.09.66-.09 1v1H4v2h2v1c0 .34.04.67.09 1H4v2h2.81c1.04 1.79 2.97 3 5.19 3s4.15-1.21 5.19-3H20v-2h-2.09c.05-.33.09-.66.09-1v-1h2v-2h-2v-1c0-.34-.04-.67-.09-1H20V8z"/>
+                </svg>
+            </button>
             <button class="call-control-btn end-call" onclick="endCall()">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.7l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28-.79-.73-1.68-1.36-2.66-1.85-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
@@ -2567,7 +2577,10 @@
                 } else if (msg.type === "audio_chunk") {
                     // Handle incoming audio chunk
                     if (isInCall && msg.data && msg.iv) {
+                        console.log('Received audio chunk, isInCall:', isInCall, 'audioPlaybackStarted:', audioPlaybackStarted);
                         decryptAndPlayAudio(msg.data, msg.iv);
+                    } else {
+                        console.log('Ignoring audio chunk - isInCall:', isInCall, 'hasData:', !!msg.data, 'hasIv:', !!msg.iv);
                     }
                 }
             };
@@ -3809,6 +3822,18 @@
             }
 
             try {
+                // Resume audio context if suspended (required for some browsers)
+                if (window.AudioContext || window.webkitAudioContext) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (!window.audioContext) {
+                        window.audioContext = new AudioContext();
+                    }
+                    if (window.audioContext.state === 'suspended') {
+                        await window.audioContext.resume();
+                        console.log('Audio context resumed');
+                    }
+                }
+
                 // Request microphone permission with high quality audio settings
                 audioStream = await navigator.mediaDevices.getUserMedia({
                     audio: {
@@ -3837,6 +3862,9 @@
 
                 ws.send(JSON.stringify(callOfferMsg));
 
+                // Test microphone before starting capture
+                testMicrophone();
+
                 // Start audio capture
                 startAudioCapture();
 
@@ -3855,6 +3883,18 @@
         // Accept incoming call
         async function acceptCall() {
             try {
+                // Resume audio context if suspended (required for some browsers)
+                if (window.AudioContext || window.webkitAudioContext) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (!window.audioContext) {
+                        window.audioContext = new AudioContext();
+                    }
+                    if (window.audioContext.state === 'suspended') {
+                        await window.audioContext.resume();
+                        console.log('Audio context resumed');
+                    }
+                }
+
                 // Request microphone permission with high quality audio settings
                 audioStream = await navigator.mediaDevices.getUserMedia({
                     audio: {
@@ -3882,6 +3922,9 @@
                     nickiv: encNick.iv,
                     timestamp: Date.now()
                 }));
+
+                // Test microphone before starting capture
+                testMicrophone();
 
                 // Start audio capture and playback
                 startAudioCapture();
@@ -4014,9 +4057,33 @@
 
         // Start audio capture and streaming
         async function startAudioCapture() {
-            if (!audioStream) return;
+            if (!audioStream) {
+                console.error('No audio stream available for capture');
+                addMessage('❌ No microphone access - cannot send audio', true);
+                return;
+            }
+
+            console.log('Starting audio capture with stream:', audioStream);
+            console.log('Audio stream tracks:', audioStream.getAudioTracks());
 
             try {
+                // Check if microphone is actually working
+                const tracks = audioStream.getAudioTracks();
+                if (tracks.length === 0) {
+                    console.error('No audio tracks found in stream');
+                    addMessage('❌ No microphone tracks found', true);
+                    return;
+                }
+
+                const track = tracks[0];
+                console.log('Audio track state:', track.readyState, 'enabled:', track.enabled);
+
+                if (track.readyState !== 'live') {
+                    console.error('Audio track is not live:', track.readyState);
+                    addMessage('❌ Microphone not active', true);
+                    return;
+                }
+
                 // Get current quality settings
                 const qualitySettings = getAudioQualitySettings();
 
@@ -4033,46 +4100,184 @@
                 }
 
                 // Create MediaRecorder for audio capture with configurable quality
+                console.log('Creating MediaRecorder with mimeType:', mimeType, 'bitrate:', qualitySettings.bitrate);
+
                 mediaRecorder = new MediaRecorder(audioStream, {
                     mimeType: mimeType,
                     audioBitsPerSecond: qualitySettings.bitrate
                 });
 
+                console.log('MediaRecorder created, state:', mediaRecorder.state);
+
                 mediaRecorder.ondataavailable = async (event) => {
+                    console.log('Audio data available, size:', event.data.size, 'isInCall:', isInCall);
+
                     if (event.data.size > 0 && isInCall) {
                         try {
                             // Convert audio blob to ArrayBuffer
                             const audioData = await event.data.arrayBuffer();
+                            console.log('Audio data converted to ArrayBuffer, size:', audioData.byteLength);
 
                             // Encrypt audio chunk using existing encryption
                             const encryptedChunk = await encryptAudioChunk(audioData);
+                            console.log('Audio chunk encrypted, sending...');
 
                             // Send encrypted audio chunk via WebSocket with sequence number
-                            ws.send(JSON.stringify({
+                            const message = {
                                 type: "audio_chunk",
                                 data: encryptedChunk.data,
                                 iv: encryptedChunk.iv,
                                 timestamp: Date.now(),
                                 chunkId: Date.now() + Math.random(), // Unique chunk ID for ordering
                                 quality: connectionQuality
-                            }));
+                            };
+
+                            ws.send(JSON.stringify(message));
+                            console.log('Audio chunk sent successfully');
+
+                            // Visual feedback for sending audio
+                            const callStatus = document.getElementById('callStatus');
+                            if (callStatus) {
+                                callStatus.textContent = '🎤 Sending audio...';
+                                setTimeout(() => {
+                                    if (callStatus.textContent === '🎤 Sending audio...') {
+                                        callStatus.textContent = '📞 In call';
+                                    }
+                                }, 200);
+                            }
+
                         } catch (error) {
-                            // Silent error handling
+                            console.error('Error processing audio chunk:', error);
+                            addMessage('❌ Error sending audio: ' + error.message, true);
                         }
+                    } else {
+                        console.log('Skipping audio chunk - size:', event.data.size, 'isInCall:', isInCall);
                     }
                 };
 
                 mediaRecorder.onerror = (event) => {
-                    // Silent error handling
+                    console.error('MediaRecorder error:', event.error);
+                    addMessage('❌ Recording error: ' + event.error, true);
+                };
+
+                mediaRecorder.onstart = () => {
+                    console.log('MediaRecorder started successfully');
+                    addMessage('🎤 Microphone recording started', true);
+                };
+
+                mediaRecorder.onstop = () => {
+                    console.log('MediaRecorder stopped');
+                    addMessage('🎤 Microphone recording stopped', true);
                 };
 
                 // Start recording with optimized chunk size based on quality
+                console.log('Starting MediaRecorder with chunk size:', qualitySettings.chunkSize);
                 mediaRecorder.start(qualitySettings.chunkSize);
 
+                console.log('MediaRecorder start called, state:', mediaRecorder.state);
+
             } catch (error) {
-                alert('Failed to start audio capture. Please try again.');
+                console.error('Failed to start audio capture:', error);
+                alert('Failed to start audio capture: ' + error.message);
+                addMessage('❌ Audio capture failed: ' + error.message, true);
                 endCall();
             }
+        }
+
+        // Test microphone access and show visual feedback
+        function testMicrophone() {
+            if (!audioStream) {
+                addMessage('❌ No microphone access', true);
+                return false;
+            }
+
+            const tracks = audioStream.getAudioTracks();
+            if (tracks.length === 0) {
+                addMessage('❌ No audio tracks available', true);
+                return false;
+            }
+
+            const track = tracks[0];
+            addMessage(`🎤 Microphone: ${track.label || 'Default'} - State: ${track.readyState}`, true);
+
+            // Test audio levels
+            if (window.AudioContext || window.webkitAudioContext) {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    const audioContext = new AudioContext();
+                    const source = audioContext.createMediaStreamSource(audioStream);
+                    const analyser = audioContext.createAnalyser();
+                    source.connect(analyser);
+
+                    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                    const checkLevel = () => {
+                        analyser.getByteFrequencyData(dataArray);
+                        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+                        if (average > 10) {
+                            addMessage(`🎤 Audio detected! Level: ${Math.round(average)}`, true);
+                            audioContext.close();
+                            return true;
+                        }
+
+                        setTimeout(checkLevel, 100);
+                    };
+
+                    addMessage('🎤 Testing microphone... speak now!', true);
+                    setTimeout(checkLevel, 100);
+
+                } catch (error) {
+                    console.error('Audio level test failed:', error);
+                }
+            }
+
+            return true;
+        }
+
+        // Comprehensive audio debugging function
+        function debugAudioSystem() {
+            console.log('=== AUDIO SYSTEM DEBUG ===');
+
+            // Check basic variables
+            console.log('isInCall:', isInCall);
+            console.log('audioStream:', audioStream);
+            console.log('mediaRecorder:', mediaRecorder);
+            console.log('mediaRecorder state:', mediaRecorder ? mediaRecorder.state : 'N/A');
+
+            // Check WebSocket
+            console.log('WebSocket state:', ws ? ws.readyState : 'N/A');
+            console.log('WebSocket ready states: CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3');
+
+            // Check audio stream
+            if (audioStream) {
+                const tracks = audioStream.getAudioTracks();
+                console.log('Audio tracks count:', tracks.length);
+                tracks.forEach((track, index) => {
+                    console.log(`Track ${index}:`, {
+                        label: track.label,
+                        enabled: track.enabled,
+                        readyState: track.readyState,
+                        muted: track.muted
+                    });
+                });
+            }
+
+            // Check MediaRecorder support
+            console.log('MediaRecorder supported:', typeof MediaRecorder !== 'undefined');
+            if (typeof MediaRecorder !== 'undefined') {
+                const testTypes = [
+                    'audio/webm;codecs=opus',
+                    'audio/webm',
+                    'audio/mp4',
+                    'audio/ogg;codecs=opus'
+                ];
+                testTypes.forEach(type => {
+                    console.log(`${type} supported:`, MediaRecorder.isTypeSupported(type));
+                });
+            }
+
+            addMessage('🔍 Audio debug info logged to console', true);
         }
 
         // Encrypt audio chunk
@@ -4108,6 +4313,12 @@
                 audioPlaybackElement = document.createElement('audio');
                 audioPlaybackElement.src = URL.createObjectURL(mediaSource);
                 audioPlaybackElement.volume = 1.0;
+                audioPlaybackElement.preload = 'auto';
+                audioPlaybackElement.controls = false; // Hide controls but keep functionality
+
+                // Add to DOM to ensure proper initialization
+                audioPlaybackElement.style.display = 'none';
+                document.body.appendChild(audioPlaybackElement);
 
                 mediaSource.addEventListener('sourceopen', () => {
                     try {
@@ -4133,6 +4344,18 @@
                         // Start playback
                         audioPlaybackElement.play().catch(e => {
                             // Audio autoplay prevented, will start on user interaction
+                            console.log('Audio autoplay prevented, requiring user interaction');
+                            // Show a notification to user
+                            addMessage('🔊 Click anywhere to enable audio playback', true);
+
+                            // Add click listener to enable audio
+                            const enableAudio = () => {
+                                audioPlaybackElement.play().then(() => {
+                                    addMessage('🔊 Audio playback enabled', true);
+                                    document.removeEventListener('click', enableAudio);
+                                }).catch(err => console.log('Audio play failed:', err));
+                            };
+                            document.addEventListener('click', enableAudio, { once: true });
                         });
 
                     } catch (error) {
@@ -4179,7 +4402,15 @@
 
                 // Start playback when we have enough buffered
                 if (!audioPlaybackStarted && audioBuffer.length >= audioBufferMin) {
+                    console.log('Starting audio playback with', audioBuffer.length, 'chunks buffered');
                     audioPlaybackStarted = true;
+
+                    // Ensure audio element is ready
+                    if (!audioPlaybackElement || !mediaSource) {
+                        console.log('Reinitializing MediaSource for playback');
+                        initializeMediaSource();
+                    }
+
                     processAudioBuffer();
                 }
 
