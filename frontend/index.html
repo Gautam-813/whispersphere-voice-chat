@@ -1667,6 +1667,16 @@
         let pendingAudioChunks = [];
         let mediaSourceReady = false;
 
+        // Audio buffering for smooth playback
+        let audioBuffer = [];
+        let audioBufferTarget = 3; // Target 3 chunks in buffer for smooth playback
+        let audioBufferMin = 1;    // Minimum buffer before starting playback
+        let audioBufferMax = 8;    // Maximum buffer to prevent excessive delay
+        let audioPlaybackStarted = false;
+        let lastAudioChunkTime = 0;
+        let audioLatencyMeasurement = [];
+        let connectionQuality = 'good'; // 'good', 'medium', 'poor'
+
         // Double Ratchet State
         let ratchetState = {
             // DH Ratchet
@@ -3717,12 +3727,49 @@
 
         // ===== VOICE CALLING FUNCTIONS =====
 
-        // Get audio quality settings
+        // Connection quality monitoring for adaptive audio
+        function measureConnectionQuality() {
+            const now = Date.now();
+            if (lastAudioChunkTime > 0) {
+                const latency = now - lastAudioChunkTime;
+                audioLatencyMeasurement.push(latency);
+
+                // Keep only last 10 measurements
+                if (audioLatencyMeasurement.length > 10) {
+                    audioLatencyMeasurement.shift();
+                }
+
+                // Calculate average latency
+                const avgLatency = audioLatencyMeasurement.reduce((a, b) => a + b, 0) / audioLatencyMeasurement.length;
+
+                // Determine connection quality
+                if (avgLatency < 100) {
+                    connectionQuality = 'good';
+                    audioBufferTarget = 2; // Lower buffer for good connections
+                } else if (avgLatency < 300) {
+                    connectionQuality = 'medium';
+                    audioBufferTarget = 3; // Standard buffer
+                } else {
+                    connectionQuality = 'poor';
+                    audioBufferTarget = 5; // Higher buffer for poor connections
+                }
+
+                // Auto-adjust quality based on connection
+                if (connectionQuality === 'poor' && audioQuality === 'ultra') {
+                    setAudioQuality('high');
+                } else if (connectionQuality === 'poor' && audioQuality === 'high') {
+                    setAudioQuality('standard');
+                }
+            }
+            lastAudioChunkTime = now;
+        }
+
+        // Get audio quality settings - Optimized for global low-latency communication
         function getAudioQualitySettings() {
             const qualitySettings = {
-                'standard': { bitrate: 64000, chunkSize: 150 },   // Good quality, low bandwidth
-                'high': { bitrate: 128000, chunkSize: 150 },      // High quality, medium bandwidth
-                'ultra': { bitrate: 256000, chunkSize: 100 }      // Ultra quality, higher bandwidth
+                'standard': { bitrate: 64000, chunkSize: 40 },    // Low latency, good quality
+                'high': { bitrate: 96000, chunkSize: 50 },        // Balanced latency/quality
+                'ultra': { bitrate: 128000, chunkSize: 60 }       // Higher quality, acceptable latency
             };
             return qualitySettings[audioQuality] || qualitySettings['high'];
         }
@@ -3768,8 +3815,9 @@
                         echoCancellation: true,
                         noiseSuppression: true,
                         autoGainControl: true,
-                        sampleRate: 48000,  // High sample rate for better quality
-                        channelCount: 1     // Mono for voice calls
+                        sampleRate: 24000,  // Optimized for voice (lower bandwidth, still good quality)
+                        channelCount: 1,    // Mono for voice calls
+                        latency: 0.02       // Request low latency (20ms)
                     }
                 });
 
@@ -3813,8 +3861,9 @@
                         echoCancellation: true,
                         noiseSuppression: true,
                         autoGainControl: true,
-                        sampleRate: 48000,  // High sample rate for better quality
-                        channelCount: 1     // Mono for voice calls
+                        sampleRate: 24000,  // Optimized for voice (lower bandwidth, still good quality)
+                        channelCount: 1,    // Mono for voice calls
+                        latency: 0.02       // Request low latency (20ms)
                     }
                 });
 
@@ -3929,8 +3978,13 @@
                 audioPlaybackElement = null;
             }
 
-            // Clear pending chunks
+            // Clear pending chunks and audio buffer
             pendingAudioChunks = [];
+            audioBuffer = [];
+            audioPlaybackStarted = false;
+            lastAudioChunkTime = 0;
+            audioLatencyMeasurement = [];
+            connectionQuality = 'good';
 
             // Hide UI elements
             document.getElementById('incomingCallModal').style.display = 'none';
@@ -3993,12 +4047,14 @@
                             // Encrypt audio chunk using existing encryption
                             const encryptedChunk = await encryptAudioChunk(audioData);
 
-                            // Send encrypted audio chunk via WebSocket
+                            // Send encrypted audio chunk via WebSocket with sequence number
                             ws.send(JSON.stringify({
                                 type: "audio_chunk",
                                 data: encryptedChunk.data,
                                 iv: encryptedChunk.iv,
-                                timestamp: Date.now()
+                                timestamp: Date.now(),
+                                chunkId: Date.now() + Math.random(), // Unique chunk ID for ordering
+                                quality: connectionQuality
                             }));
                         } catch (error) {
                             // Silent error handling
@@ -4090,9 +4146,11 @@
             }
         }
 
-        // Decrypt and play audio chunk using MediaSource
+        // Decrypt and play audio chunk using improved buffering
         async function decryptAndPlayAudio(encryptedData, ivData) {
             try {
+                measureConnectionQuality(); // Monitor connection quality
+
                 const ciphertext = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
                 const iv = Uint8Array.from(atob(ivData), c => c.charCodeAt(0));
 
@@ -4108,39 +4166,66 @@
                     ciphertext
                 );
 
-                // Initialize MediaSource if not already done
-                if (!mediaSource && !initializeMediaSource()) {
-                    // Fallback to simple audio element approach
-                    playAudioChunkFallback(decryptedData);
-                    return;
+                // Add to audio buffer for smooth playback
+                audioBuffer.push({
+                    data: decryptedData,
+                    timestamp: Date.now()
+                });
+
+                // Remove old chunks to prevent excessive buffering
+                if (audioBuffer.length > audioBufferMax) {
+                    audioBuffer.shift();
                 }
 
-                // Add decrypted audio chunk to MediaSource
-                if (mediaSourceReady && sourceBuffer && !sourceBuffer.updating) {
-                    try {
-                        sourceBuffer.appendBuffer(decryptedData);
-                    } catch (error) {
-                        pendingAudioChunks.push(decryptedData);
-                    }
-                } else {
-                    // Queue chunk for later processing
-                    pendingAudioChunks.push(decryptedData);
+                // Start playback when we have enough buffered
+                if (!audioPlaybackStarted && audioBuffer.length >= audioBufferMin) {
+                    audioPlaybackStarted = true;
+                    processAudioBuffer();
                 }
 
-                // Visual indicator that audio is being received
+                // Visual indicator with connection quality
                 const callStatus = document.getElementById('callStatus');
                 if (callStatus) {
-                    callStatus.textContent = '🎵 Audio Streaming';
-                    setTimeout(() => {
-                        if (callStatus.textContent === '🎵 Audio Streaming') {
-                            callStatus.textContent = 'Connected';
-                        }
-                    }, 300);
+                    const qualityIcon = connectionQuality === 'good' ? '🟢' :
+                                      connectionQuality === 'medium' ? '🟡' : '🔴';
+                    callStatus.textContent = `${qualityIcon} Audio (${audioBuffer.length} buffered)`;
                 }
 
             } catch (error) {
                 // Silent error handling for production
             }
+        }
+
+        // Process audio buffer for smooth playback
+        async function processAudioBuffer() {
+            if (!audioPlaybackStarted || audioBuffer.length === 0) {
+                return;
+            }
+
+            // Maintain target buffer size
+            if (audioBuffer.length >= audioBufferTarget) {
+                const chunk = audioBuffer.shift();
+
+                // Initialize MediaSource if not already done
+                if (!mediaSource && !initializeMediaSource()) {
+                    // Fallback to simple audio element approach
+                    playAudioChunkFallback(chunk.data);
+                } else {
+                    // Add to MediaSource
+                    if (mediaSourceReady && sourceBuffer && !sourceBuffer.updating) {
+                        try {
+                            sourceBuffer.appendBuffer(chunk.data);
+                        } catch (error) {
+                            pendingAudioChunks.push(chunk.data);
+                        }
+                    } else {
+                        pendingAudioChunks.push(chunk.data);
+                    }
+                }
+            }
+
+            // Continue processing
+            setTimeout(processAudioBuffer, 20); // Process every 20ms
         }
 
         // Fallback audio playback for browsers without MediaSource support
