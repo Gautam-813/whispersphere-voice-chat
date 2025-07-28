@@ -4518,42 +4518,110 @@
             setTimeout(processAudioBuffer, 20); // Process every 20ms
         }
 
-        // Fallback audio playback for browsers without MediaSource support
-        function playAudioChunkFallback(audioData) {
+        // Web Audio API fallback for raw audio data playback
+        let webAudioContext = null;
+        let webAudioQueue = [];
+        let isPlayingQueue = false;
+
+        async function playAudioChunkFallback(audioData) {
             try {
-                console.log('🔊 Fallback playback, audio data size:', audioData.byteLength);
-                const audioBlob = new Blob([audioData], { type: 'audio/webm' });
-                const audioUrl = URL.createObjectURL(audioBlob);
-                console.log('🔊 Created audio blob URL:', audioUrl);
+                console.log('🔊 Web Audio API fallback, audio data size:', audioData.byteLength);
 
-                const audio = new Audio(audioUrl);
-                audio.volume = 0.8;
+                // Initialize AudioContext if needed
+                if (!webAudioContext) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    webAudioContext = new AudioContext();
+                    console.log('🔊 AudioContext created, state:', webAudioContext.state);
+                }
 
-                audio.onended = () => {
-                    console.log('🔊 Fallback audio ended');
-                    URL.revokeObjectURL(audioUrl);
-                };
+                // Resume AudioContext if suspended
+                if (webAudioContext.state === 'suspended') {
+                    await webAudioContext.resume();
+                    console.log('🔊 AudioContext resumed');
+                }
 
-                audio.onerror = (e) => {
-                    console.error('🔊 Fallback audio error:', e);
-                    URL.revokeObjectURL(audioUrl);
-                };
+                // Try to decode the audio data
+                try {
+                    const audioBuffer = await webAudioContext.decodeAudioData(audioData.slice());
+                    console.log('🔊 Audio decoded successfully, duration:', audioBuffer.duration);
 
-                audio.onloadeddata = () => {
-                    console.log('🔊 Fallback audio loaded, duration:', audio.duration);
-                };
+                    // Add to queue for sequential playback
+                    webAudioQueue.push(audioBuffer);
 
-                console.log('🔊 Starting fallback audio playback');
-                audio.play().then(() => {
-                    console.log('🔊 Fallback audio play started successfully');
-                }).catch((error) => {
-                    console.error('🔊 Fallback audio play failed:', error);
-                    URL.revokeObjectURL(audioUrl);
-                });
+                    if (!isPlayingQueue) {
+                        playAudioQueue();
+                    }
+
+                } catch (decodeError) {
+                    console.error('🔊 Audio decode failed, trying simple blob playback:', decodeError);
+
+                    // Fallback to simple blob playback with different MIME types
+                    const mimeTypes = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/wav'];
+                    let played = false;
+
+                    for (const mimeType of mimeTypes) {
+                        try {
+                            const audioBlob = new Blob([audioData], { type: mimeType });
+                            const audioUrl = URL.createObjectURL(audioBlob);
+                            const audio = new Audio(audioUrl);
+
+                            audio.volume = 0.8;
+                            audio.onended = () => URL.revokeObjectURL(audioUrl);
+                            audio.onerror = () => URL.revokeObjectURL(audioUrl);
+
+                            await audio.play();
+                            console.log('🔊 Simple audio playback successful with', mimeType);
+                            played = true;
+                            break;
+
+                        } catch (playError) {
+                            console.log('🔊 Failed with', mimeType, ':', playError.message);
+                        }
+                    }
+
+                    if (!played) {
+                        console.error('🔊 All audio playback methods failed');
+                    }
+                }
 
             } catch (error) {
-                console.error('🔊 Error in fallback audio playback:', error);
+                console.error('🔊 Error in Web Audio API fallback:', error);
             }
+        }
+
+        // Play audio queue sequentially
+        async function playAudioQueue() {
+            if (isPlayingQueue || webAudioQueue.length === 0) return;
+
+            isPlayingQueue = true;
+            console.log('🔊 Starting audio queue playback, queue length:', webAudioQueue.length);
+
+            while (webAudioQueue.length > 0) {
+                const audioBuffer = webAudioQueue.shift();
+
+                try {
+                    const source = webAudioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(webAudioContext.destination);
+
+                    // Play the audio
+                    source.start();
+                    console.log('🔊 Playing audio chunk, duration:', audioBuffer.duration);
+
+                    // Wait for this chunk to finish before playing next
+                    await new Promise(resolve => {
+                        source.onended = resolve;
+                        // Fallback timeout in case onended doesn't fire
+                        setTimeout(resolve, audioBuffer.duration * 1000 + 100);
+                    });
+
+                } catch (playError) {
+                    console.error('🔊 Error playing audio chunk:', playError);
+                }
+            }
+
+            isPlayingQueue = false;
+            console.log('🔊 Audio queue playback finished');
         }
 
         // Toggle mute
