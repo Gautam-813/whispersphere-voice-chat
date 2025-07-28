@@ -1633,6 +1633,11 @@
                     <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
                 </svg>
             </button>
+            <button class="call-control-btn" id="testAudioButton" onclick="testAudioPlayback()" title="Test audio playback">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                </svg>
+            </button>
             <button class="call-control-btn end-call" onclick="endCall()">
                 <svg viewBox="0 0 24 24">
                     <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.7l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28-.79-.73-1.68-1.36-2.66-1.85-.33-.16-.56-.51-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
@@ -4305,6 +4310,34 @@
             addMessage('🔊 Switched to fallback audio mode', true);
         }
 
+        // Test audio playback with a simple tone
+        function testAudioPlayback() {
+            try {
+                console.log('🔊 Testing basic audio playback');
+
+                // Create a simple test tone using Web Audio API
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.5); // Play for 0.5 seconds
+
+                console.log('🔊 Test tone should be playing');
+                addMessage('🔊 Test tone played - if you heard it, audio works!', true);
+
+            } catch (error) {
+                console.error('🔊 Test audio failed:', error);
+                addMessage('❌ Test audio failed: ' + error.message, true);
+            }
+        }
+
         // Encrypt audio chunk
         async function encryptAudioChunk(audioData) {
             const iv = window.crypto.getRandomValues(new Uint8Array(12));
@@ -4330,38 +4363,84 @@
         // Initialize MediaSource for audio playback
         function initializeMediaSource() {
             if (!window.MediaSource) {
+                console.error('🔊 MediaSource not supported in this browser');
                 return false;
             }
 
             try {
+                console.log('🔊 Creating new MediaSource');
                 mediaSource = new MediaSource();
+
+                // Clean up old audio element if exists
+                if (audioPlaybackElement) {
+                    audioPlaybackElement.pause();
+                    if (audioPlaybackElement.src) {
+                        URL.revokeObjectURL(audioPlaybackElement.src);
+                    }
+                    if (audioPlaybackElement.parentNode) {
+                        audioPlaybackElement.parentNode.removeChild(audioPlaybackElement);
+                    }
+                }
+
                 audioPlaybackElement = document.createElement('audio');
                 audioPlaybackElement.src = URL.createObjectURL(mediaSource);
                 audioPlaybackElement.volume = 1.0;
                 audioPlaybackElement.preload = 'auto';
-                audioPlaybackElement.controls = false; // Hide controls but keep functionality
+                audioPlaybackElement.controls = false;
+                audioPlaybackElement.autoplay = true; // Try autoplay
 
                 // Add to DOM to ensure proper initialization
                 audioPlaybackElement.style.display = 'none';
                 document.body.appendChild(audioPlaybackElement);
 
+                console.log('🔊 MediaSource and audio element created');
+
                 mediaSource.addEventListener('sourceopen', () => {
                     try {
                         // Try different codecs for compatibility
-                        let mimeType = 'audio/webm; codecs="opus"';
-                        if (!MediaSource.isTypeSupported(mimeType)) {
-                            mimeType = 'audio/webm';
+                        console.log('🔊 MediaSource opened, setting up SourceBuffer');
+
+                        const supportedTypes = [
+                            'audio/webm; codecs="opus"',
+                            'audio/webm',
+                            'audio/mp4; codecs="mp4a.40.2"'
+                        ];
+
+                        let mimeType = null;
+                        for (const type of supportedTypes) {
+                            if (MediaSource.isTypeSupported(type)) {
+                                mimeType = type;
+                                console.log('🔊 Using MIME type:', type);
+                                break;
+                            }
+                        }
+
+                        if (!mimeType) {
+                            console.error('🔊 No supported MIME type found');
+                            mediaSourceReady = false;
+                            return;
                         }
 
                         sourceBuffer = mediaSource.addSourceBuffer(mimeType);
                         sourceBuffer.mode = 'sequence';
+                        console.log('🔊 SourceBuffer created successfully');
 
                         sourceBuffer.addEventListener('updateend', () => {
+                            console.log('🔊 SourceBuffer update ended, pending chunks:', pendingAudioChunks.length);
                             // Process pending chunks when buffer is ready
                             if (pendingAudioChunks.length > 0 && !sourceBuffer.updating) {
                                 const chunk = pendingAudioChunks.shift();
-                                sourceBuffer.appendBuffer(chunk);
+                                try {
+                                    sourceBuffer.appendBuffer(chunk);
+                                    console.log('🔊 Appended pending chunk to SourceBuffer');
+                                } catch (appendError) {
+                                    console.error('🔊 Error appending pending chunk:', appendError);
+                                }
                             }
+                        });
+
+                        sourceBuffer.addEventListener('error', (e) => {
+                            console.error('🔊 SourceBuffer error:', e);
                         });
 
                         mediaSourceReady = true;
@@ -4474,20 +4553,17 @@
                 const chunk = audioBuffer.shift();
                 console.log('🔊 Processing audio chunk, remaining buffer:', audioBuffer.length);
 
-                // Check if we should use fallback mode or try MediaSource
-                if (useMediaSourceFallback || !mediaSource) {
-                    if (useMediaSourceFallback) {
-                        console.log('🔊 Using forced fallback mode');
+                        // Always try MediaSource first, fallback only if it completely fails
+                if (!mediaSource) {
+                    console.log('🔊 Initializing MediaSource for audio playback');
+                    if (!initializeMediaSource()) {
+                        console.log('🔊 MediaSource initialization failed, using simple playback');
                         playAudioChunkFallback(chunk.data);
-                    } else if (!initializeMediaSource()) {
-                        console.log('🔊 MediaSource initialization failed, switching to fallback mode');
-                        useMediaSourceFallback = true;
-                        playAudioChunkFallback(chunk.data);
-                    } else {
-                        // MediaSource was just initialized, add chunk to pending
-                        console.log('🔊 MediaSource just initialized, adding to pending');
-                        pendingAudioChunks.push(chunk.data);
+                        return;
                     }
+                    // MediaSource was just initialized, add chunk to pending
+                    console.log('🔊 MediaSource initialized, adding chunk to pending');
+                    pendingAudioChunks.push(chunk.data);
                 } else {
                     console.log('🔊 Using MediaSource playback, ready:', mediaSourceReady, 'sourceBuffer:', !!sourceBuffer, 'updating:', sourceBuffer?.updating);
                     // Add to MediaSource
@@ -4496,16 +4572,24 @@
                             console.log('🔊 Appending audio chunk to sourceBuffer');
                             sourceBuffer.appendBuffer(chunk.data);
                         } catch (error) {
-                            console.error('🔊 MediaSource failed, switching to fallback permanently:', error);
-                            // MediaSource is broken, switch to fallback permanently
-                            useMediaSourceFallback = true;
-                            mediaSource = null;
-                            sourceBuffer = null;
-                            mediaSourceReady = false;
-                            pendingAudioChunks = [];
+                            console.error('🔊 MediaSource append failed:', error);
+                            // Add to pending chunks instead of failing completely
+                            pendingAudioChunks.push(chunk.data);
 
-                            // Use fallback for this chunk
-                            playAudioChunkFallback(chunk.data);
+                            // If this is a critical error, reinitialize MediaSource
+                            if (error.name === 'InvalidStateError') {
+                                console.log('🔊 Reinitializing MediaSource due to invalid state');
+                                mediaSource = null;
+                                sourceBuffer = null;
+                                mediaSourceReady = false;
+
+                                // Try to reinitialize on next chunk
+                                setTimeout(() => {
+                                    if (pendingAudioChunks.length > 0) {
+                                        initializeMediaSource();
+                                    }
+                                }, 100);
+                            }
                         }
                     } else {
                         console.log('🔊 Adding chunk to pending queue');
@@ -4638,7 +4722,7 @@
 
             if (audioStream) {
                 audioStream.getAudioTracks().forEach(track => {
-                    track.enabled = !isMuted;
+                    track.muted = isMuted;
                 });
             }
 
