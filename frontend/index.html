@@ -2588,10 +2588,7 @@
                 } else if (msg.type === "audio_chunk") {
                     // Handle incoming audio chunk
                     if (isInCall && msg.data && msg.iv) {
-                        console.log('Received audio chunk, isInCall:', isInCall, 'audioPlaybackStarted:', audioPlaybackStarted);
                         decryptAndPlayAudio(msg.data, msg.iv);
-                    } else {
-                        console.log('Ignoring audio chunk - isInCall:', isInCall, 'hasData:', !!msg.data, 'hasIv:', !!msg.iv);
                     }
                 }
             };
@@ -3815,7 +3812,6 @@
         function enableAudioFallback() {
             useMediaSourceFallback = true;
             addMessage('🔊 Audio fallback mode enabled - using Web Audio API', true);
-            console.log('🔊 Fallback mode enabled manually');
             return true;
         }
 
@@ -3823,7 +3819,6 @@
         function disableAudioFallback() {
             useMediaSourceFallback = false;
             addMessage('🔊 Audio fallback mode disabled - using MediaSource', true);
-            console.log('🔊 Fallback mode disabled manually');
             return true;
         }
 
@@ -3844,7 +3839,6 @@
                 audioStreamActive: !!(audioStream && audioStream.getAudioTracks().length > 0),
                 microphoneEnabled: audioStream ? audioStream.getAudioTracks()[0]?.enabled : false
             };
-            console.table(info);
             return info;
         }
 
@@ -3919,9 +3913,6 @@
                 userAgent: navigator.userAgent
             };
 
-            console.log('🔍 Audio Diagnosis:');
-            console.table(diagnosis);
-
             // Provide recommendations
             const recommendations = [];
 
@@ -3947,9 +3938,6 @@
             if (recommendations.length === 0) {
                 recommendations.push('✅ Audio setup looks good');
             }
-
-            console.log('🔧 Recommendations:');
-            recommendations.forEach(rec => console.log(rec));
 
             return { diagnosis, recommendations };
         }
@@ -4005,7 +3993,6 @@
                     }
                     if (window.audioContext.state === 'suspended') {
                         await window.audioContext.resume();
-                        console.log('Audio context resumed');
                     }
                 }
 
@@ -4069,7 +4056,6 @@
                     }
                     if (window.audioContext.state === 'suspended') {
                         await window.audioContext.resume();
-                        console.log('Audio context resumed');
                     }
                 }
 
@@ -4384,98 +4370,6 @@
             }
 
             return true;
-        }
-
-        // Comprehensive audio debugging function
-        function debugAudioSystem() {
-            console.log('=== AUDIO SYSTEM DEBUG ===');
-
-            // Check basic variables
-            console.log('isInCall:', isInCall);
-            console.log('audioStream:', audioStream);
-            console.log('mediaRecorder:', mediaRecorder);
-            console.log('mediaRecorder state:', mediaRecorder ? mediaRecorder.state : 'N/A');
-
-            // Check WebSocket
-            console.log('WebSocket state:', ws ? ws.readyState : 'N/A');
-            console.log('WebSocket ready states: CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3');
-
-            // Check audio stream
-            if (audioStream) {
-                const tracks = audioStream.getAudioTracks();
-                console.log('Audio tracks count:', tracks.length);
-                tracks.forEach((track, index) => {
-                    console.log(`Track ${index}:`, {
-                        label: track.label,
-                        enabled: track.enabled,
-                        readyState: track.readyState,
-                        muted: track.muted
-                    });
-                });
-            }
-
-            // Check MediaRecorder support
-            console.log('MediaRecorder supported:', typeof MediaRecorder !== 'undefined');
-            if (typeof MediaRecorder !== 'undefined') {
-                const testTypes = [
-                    'audio/webm;codecs=opus',
-                    'audio/webm',
-                    'audio/mp4',
-                    'audio/ogg;codecs=opus'
-                ];
-                testTypes.forEach(type => {
-                    console.log(`${type} supported:`, MediaRecorder.isTypeSupported(type));
-                });
-            }
-
-            addMessage('🔍 Audio debug info logged to console', true);
-        }
-
-        // Force fallback audio mode (for testing)
-        function forceFallbackMode() {
-            console.log('🔊 Forcing fallback audio mode');
-            useMediaSourceFallback = true;
-
-            // Clean up MediaSource
-            if (mediaSource) {
-                try {
-                    mediaSource.endOfStream();
-                } catch (e) {}
-                mediaSource = null;
-            }
-            sourceBuffer = null;
-            mediaSourceReady = false;
-            pendingAudioChunks = [];
-
-            addMessage('🔊 Switched to fallback audio mode', true);
-        }
-
-        // Test audio playback with a simple tone
-        function testAudioPlayback() {
-            try {
-                console.log('🔊 Testing basic audio playback');
-
-                // Create a simple test tone using Web Audio API
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-
-                oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
-                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-
-                oscillator.start();
-                oscillator.stop(audioContext.currentTime + 0.5); // Play for 0.5 seconds
-
-                console.log('🔊 Test tone should be playing');
-                addMessage('🔊 Test tone played - if you heard it, audio works!', true);
-
-            } catch (error) {
-                console.error('🔊 Test audio failed:', error);
-                addMessage('❌ Test audio failed: ' + error.message, true);
-            }
         }
 
         // Encrypt audio chunk
