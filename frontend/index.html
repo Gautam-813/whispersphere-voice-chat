@@ -2567,6 +2567,12 @@
                             const answererNick = msg.nickname ? await decryptMeta(msg.nickname, msg.nickiv) : 'Unknown';
                             document.getElementById('callControls').style.display = 'block';
                             startCallTimer();
+                            
+                            // CRITICAL FIX: Initialize audio playback for the caller
+                            // This was missing - caller could send but not receive audio!
+                            initializeMediaSource();
+                            enableAudioPlaybackForMobile();
+                            
                             addMessage(`📞 ${answererNick} answered the call`, true);
                         } catch (e) {
                             // Silent error handling
